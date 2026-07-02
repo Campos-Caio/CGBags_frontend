@@ -1,26 +1,27 @@
-"use client";
+import { Hero } from "@/components/home/Hero";
+import { AgroSection } from "@/components/home/AgroSection";
+import { ProductsSection } from "@/components/home/ProductsSection";
+import { WhyChooseSection } from "@/components/home/WhyChooseSection";
+import { listProducts } from "@/services/product.service";
+import type { Product } from "@/types/product";
 
-import { useEffect } from "react";
-import { listProducts } from "@/services/product.services";
+async function getFeaturedProducts(): Promise<Product[]> {
+  try {
+    return await listProducts({ limit: 4 });
+  } catch {
+    return [];
+  }
+}
 
-export default function Home() {
-  useEffect(() => {
-    async function loadProducts() {
-      try {
-        const products = await listProducts();
-        console.log(products);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    loadProducts();
-  }, []);
+export default async function Home() {
+  const products = await getFeaturedProducts();
 
   return (
-    <main className="p-8">
-      <h1>CG Bags</h1>
-      <p>Verifique o Console (F12).</p>
-    </main>
+    <>
+      <Hero />
+      <AgroSection />
+      <ProductsSection products={products} />
+      <WhyChooseSection />
+    </>
   );
 }
