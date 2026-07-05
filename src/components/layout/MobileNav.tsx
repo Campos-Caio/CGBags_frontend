@@ -14,7 +14,12 @@ function MobileNav() {
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger asChild>
-        <Button variant="ghost" size="icon-lg" aria-label="Abrir menu" className="md:hidden">
+        <Button
+          variant="ghost"
+          size="icon-lg"
+          aria-label="Abrir menu"
+          className="bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary md:hidden"
+        >
           <Menu className="size-5" />
         </Button>
       </Dialog.Trigger>

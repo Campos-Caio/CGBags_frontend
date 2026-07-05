@@ -15,7 +15,7 @@ export const STOCK_STATUS_LABEL: Record<StockStatus, string> = {
 };
 
 export const STOCK_STATUS_BADGE_CLASS: Record<StockStatus, string> = {
-  "in-stock": "bg-secondary text-secondary-foreground",
-  "low-stock": "bg-accent text-accent-foreground",
-  "out-of-stock": "bg-muted text-muted-foreground",
+  "in-stock": "bg-green-100 text-green-800",
+  "low-stock": "bg-amber-100 text-amber-800",
+  "out-of-stock": "bg-red-100 text-red-700",
 };

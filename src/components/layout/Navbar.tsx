@@ -8,9 +8,9 @@ import { NAV_LINKS } from "@/constants/nav";
 
 function Navbar() {
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <Container className="flex h-24 items-center justify-between">
-        <Link href="/" className="font-heading text-2xl font-semibold text-foreground">
+        <Link href="/" className="font-heading text-2xl font-semibold text-primary">
           CG Bags
         </Link>
 
@@ -19,7 +19,7 @@ function Navbar() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-base font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="text-base font-medium text-primary/80 transition-colors hover:text-primary"
             >
               {link.label}
             </Link>
