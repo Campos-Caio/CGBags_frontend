@@ -35,6 +35,7 @@ export interface Order {
   shipping_neighborhood: string;
   shipping_city: string;
   shipping_state: string;
+  shipping_method: string | null;
 
   subtotal: string;
   shipping_cost: string;

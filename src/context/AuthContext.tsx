@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 
 import { refreshAccessToken, setUnauthorizedHandler } from "@/lib/api";
 import { setAccessToken } from "@/lib/token";
@@ -31,7 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setUnauthorizedHandler(() => setUser(null));
+    setUnauthorizedHandler(() => {
+      // So avisa se havia mesmo uma sessao ativa — evita toast espurio no
+      // primeiro carregamento de um visitante anonimo (nunca logado nesta
+      // aba), quando nao ha nada para "expirar".
+      setUser((current) => {
+        if (current !== null) {
+          toast.error("Sua sessão expirou. Faça login novamente.");
+        }
+        return null;
+      });
+    });
 
     async function restoreSession() {
       // Nao ha access token persistido (fica so em memoria): a sessao e restaurada

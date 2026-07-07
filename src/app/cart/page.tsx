@@ -21,7 +21,7 @@ export default function CartPage() {
       await removeItem(itemId);
       toast.success("Item removido do carrinho.");
     } catch (error) {
-      toast.error(getApiErrorMessage(error));
+      toast.error(getApiErrorMessage(error, "Não foi possível remover este item do carrinho."));
     }
   }
 
@@ -35,7 +35,9 @@ export default function CartPage() {
     try {
       await updateItem(item.id, nextQuantity);
     } catch (error) {
-      toast.error(getApiErrorMessage(error));
+      toast.error(
+        getApiErrorMessage(error, "Não foi possível atualizar a quantidade deste item.")
+      );
     }
   }
 
@@ -142,9 +144,12 @@ export default function CartPage() {
         </span>
       </div>
 
-      <div className="mt-6 text-center">
+      <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
         <Button variant="outline" asChild>
           <Link href="/products">Continuar comprando</Link>
+        </Button>
+        <Button asChild>
+          <Link href="/checkout">Finalizar pedido</Link>
         </Button>
       </div>
     </Container>

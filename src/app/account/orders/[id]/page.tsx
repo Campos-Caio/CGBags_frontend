@@ -6,18 +6,23 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { DefinitionRow } from "@/components/ui/definition-row";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { useAuth } from "@/context/AuthContext";
-import { getMyOrderById } from "@/services/order.service";
-import type { Order } from "@/types/order";
+import { cancelOrder, getMyOrderById } from "@/services/order.service";
+import type { Order, OrderStatus } from "@/types/order";
 import { getApiErrorMessage } from "@/utils/apiError";
+import { confirmToast } from "@/utils/confirmToast";
 import { formatCurrency } from "@/utils/currency";
 import { formatDateTime } from "@/utils/date";
 
 type PageStatus = "loading" | "ready" | "error";
+
+const CANCELLABLE_STATUSES: OrderStatus[] = ["PENDING_PAYMENT", "PAYMENT_FAILED", "PAID"];
+const PAYABLE_STATUSES: OrderStatus[] = ["PENDING_PAYMENT", "PAYMENT_FAILED"];
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -25,6 +30,7 @@ export default function OrderDetailPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [status, setStatus] = useState<PageStatus>("loading");
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -64,6 +70,29 @@ export default function OrderDetailPage() {
       cancelled = true;
     };
   }, [isAuthenticated, params.id]);
+
+  function handleCancel() {
+    if (!order) return;
+    const message =
+      order.status === "PAID"
+        ? "Cancelar este pedido? O valor pago será estornado."
+        : "Cancelar este pedido?";
+    confirmToast(message, performCancel, { confirmLabel: "Cancelar pedido" });
+  }
+
+  async function performCancel() {
+    if (!order) return;
+    setIsCancelling(true);
+    try {
+      const updated = await cancelOrder(order.id);
+      setOrder(updated);
+      toast.success("Pedido cancelado.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível cancelar este pedido."));
+    } finally {
+      setIsCancelling(false);
+    }
+  }
 
   if (authLoading || !isAuthenticated || status === "loading") {
     return (
@@ -121,7 +150,26 @@ export default function OrderDetailPage() {
               Feito em {formatDateTime(order.created_at)}
             </p>
           </div>
-          <OrderStatusBadge status={order.status} />
+          <div className="flex flex-col items-end gap-2">
+            <OrderStatusBadge status={order.status} />
+            <div className="flex gap-2">
+              {PAYABLE_STATUSES.includes(order.status) && (
+                <Button size="sm" asChild>
+                  <Link href={`/checkout/payment/${order.id}`}>Pagar agora</Link>
+                </Button>
+              )}
+              {CANCELLABLE_STATUSES.includes(order.status) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isCancelling}
+                  onClick={handleCancel}
+                >
+                  {isCancelling ? "Cancelando..." : "Cancelar pedido"}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="mt-8 flex flex-col gap-6">
@@ -154,7 +202,7 @@ export default function OrderDetailPage() {
               <DefinitionRow size="lg" label="Subtotal" value={formatCurrency(order.subtotal)} />
               <DefinitionRow
                 size="lg"
-                label="Frete"
+                label={order.shipping_method ? `Frete (${order.shipping_method})` : "Frete"}
                 value={formatCurrency(order.shipping_cost)}
               />
               {Number(order.discount) > 0 && (

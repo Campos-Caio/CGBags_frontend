@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogOut, Package, User } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -11,7 +13,19 @@ const menuItemClass =
   "flex cursor-default select-none items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium outline-none data-[highlighted]:bg-muted data-[highlighted]:text-foreground";
 
 function AuthNavActions() {
+  const router = useRouter();
   const { isAuthenticated, isLoading, logout } = useAuth();
+
+  async function handleLogout() {
+    try {
+      await logout();
+    } finally {
+      // finally: mesmo se a chamada ao backend falhar, o AuthContext ja
+      // limpa a sessao localmente — o usuario precisa ver que saiu.
+      toast.success("Você saiu da sua conta.");
+      router.push("/");
+    }
+  }
 
   if (isLoading) {
     return null;
@@ -54,7 +68,7 @@ function AuthNavActions() {
             <DropdownMenu.Separator className="my-1 h-px bg-border" />
 
             <DropdownMenu.Item
-              onSelect={() => logout()}
+              onSelect={() => handleLogout()}
               className={`${menuItemClass} text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive`}
             >
               <LogOut className="size-4" aria-hidden />

@@ -28,6 +28,6 @@ export async function getMe(): Promise<User> {
 }
 
 export async function updateEmail(email: string): Promise<User> {
-  const response = await api.patch<User>("/users/me/email", { email });
+  const response = await api.patch<User>("/users/me", { email });
   return response.data;
 }

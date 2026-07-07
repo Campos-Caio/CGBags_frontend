@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { AddressManager } from "@/components/account/AddressManager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
@@ -282,6 +283,12 @@ export default function AccountPage() {
             </p>
           )}
         </form>
+
+        {!isEditing && (
+          <div className="mt-6">
+            <AddressManager />
+          </div>
+        )}
       </div>
     </Container>
   );
