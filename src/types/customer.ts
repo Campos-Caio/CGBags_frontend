@@ -1,3 +1,6 @@
+import type { Address } from "@/types/address";
+import type { User } from "@/types/auth";
+
 export type PersonType = "PF" | "PJ";
 
 export interface Customer {
@@ -10,6 +13,9 @@ export interface Customer {
   phone: string;
   birth_date: string | null;
   is_active: boolean;
+  created_at: string;
+  user?: User;
+  addresses?: Address[];
 }
 
 export interface CustomerCreateInput {
@@ -26,4 +32,5 @@ export interface CustomerUpdateInput {
   full_name?: string;
   phone?: string;
   birth_date?: string;
+  is_active?: boolean;
 }

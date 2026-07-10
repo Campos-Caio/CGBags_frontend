@@ -22,3 +22,29 @@ export async function updateMyAddress(
 export async function deleteMyAddress(addressId: number): Promise<void> {
   await api.delete(`/customers/me/addresses/${addressId}`);
 }
+
+// --- Rotas administrativas ---
+
+export async function listCustomerAddressesAdmin(customerId: number): Promise<Address[]> {
+  const response = await api.get<Address[]>(`/customers/${customerId}/addresses`);
+  return response.data;
+}
+
+export async function updateCustomerAddressAdmin(
+  customerId: number,
+  addressId: number,
+  data: AddressUpdateInput
+): Promise<Address> {
+  const response = await api.patch<Address>(
+    `/customers/${customerId}/addresses/${addressId}`,
+    data
+  );
+  return response.data;
+}
+
+export async function deleteCustomerAddressAdmin(
+  customerId: number,
+  addressId: number
+): Promise<void> {
+  await api.delete(`/customers/${customerId}/addresses/${addressId}`);
+}

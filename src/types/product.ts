@@ -14,6 +14,7 @@ export interface Product {
   description: string | null;
   price: string;
   stock_quantity: number;
+  stock_minimum: number;
   weight: string | null;
   width: string | null;
   height: string | null;
@@ -22,4 +23,28 @@ export interface Product {
   meters: string | null;
   is_active: boolean;
   images: ProductImage[];
+}
+
+export interface ProductAdminInput {
+  category_id: number;
+  sku: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  price: string;
+  stock_minimum: number;
+  weight?: string;
+  width?: string;
+  height?: string;
+  length?: string;
+  vehicle_model?: string;
+  meters?: string;
+  is_active: boolean;
+}
+
+export type ProductAdminUpdateInput = Partial<ProductAdminInput>;
+
+export interface ProductImageInput {
+  image_url: string;
+  sort_order: number;
 }

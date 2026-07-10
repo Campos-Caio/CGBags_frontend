@@ -1,0 +1,113 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { Eye, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
+import { UserRoleToggle } from "@/components/admin/users/UserRoleToggle";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { deleteUserAdmin } from "@/services/user.service";
+import type { User } from "@/types/auth";
+import { getApiErrorMessage } from "@/utils/apiError";
+import { confirmToast } from "@/utils/confirmToast";
+import { formatDateTime } from "@/utils/date";
+
+interface UsersTableProps {
+  users: User[];
+  currentUserId: number;
+  onUsersChange: (users: User[]) => void;
+}
+
+export function UsersTable({ users, currentUserId, onUsersChange }: UsersTableProps) {
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  function handleRoleChange(updated: User) {
+    onUsersChange(users.map((u) => (u.id === updated.id ? updated : u)));
+  }
+
+  function handleDelete(user: User) {
+    confirmToast(`Excluir o usuário "${user.email}"?`, () => performDelete(user), {
+      confirmLabel: "Excluir",
+    });
+  }
+
+  async function performDelete(user: User) {
+    setDeletingId(user.id);
+    try {
+      await deleteUserAdmin(user.id);
+      onUsersChange(users.filter((u) => u.id !== user.id));
+      toast.success("Usuário excluído.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível excluir este usuário."));
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  if (users.length === 0) {
+    return <p className="py-8 text-center text-sm text-muted-foreground">Nenhum usuário encontrado.</p>;
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>E-mail</TableHead>
+          <TableHead>Criado em</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {users.map((user) => {
+          const isSelf = user.id === currentUserId;
+          return (
+            <TableRow key={user.id}>
+              <TableCell className="font-medium text-foreground">
+                {user.email}
+                {isSelf && (
+                  <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    Você
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {formatDateTime(user.created_at)}
+              </TableCell>
+              <TableCell>
+                <UserRoleToggle user={user} onChange={handleRoleChange} disabled={isSelf} />
+              </TableCell>
+              <TableCell>
+                <div className="flex justify-end gap-1.5">
+                  <Button variant="outline" size="sm" aria-label="Ver usuário" asChild>
+                    <Link href={`/admin/users/${user.id}`}>
+                      <Eye className="size-3.5" aria-hidden />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label="Excluir usuário"
+                    disabled={isSelf || deletingId === user.id}
+                    onClick={() => handleDelete(user)}
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
