@@ -33,7 +33,13 @@ export function CustomersTable({ customers, onCustomersChange }: CustomersTableP
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   function handleDelete(customer: Customer) {
-    confirmToast(`Excluir o cliente "${customer.full_name}"?`, () => performDelete(customer), {
+    const itemCount = customer.cart_item_count ?? 0;
+    const message =
+      itemCount > 0
+        ? `O cliente "${customer.full_name}" tem ${itemCount} ${itemCount === 1 ? "item" : "itens"} no carrinho — eles serão perdidos. Excluir mesmo assim?`
+        : `Excluir o cliente "${customer.full_name}"?`;
+
+    confirmToast(message, () => performDelete(customer), {
       confirmLabel: "Excluir",
     });
   }

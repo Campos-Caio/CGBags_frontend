@@ -12,6 +12,7 @@ import { useCart } from "@/context/CartContext";
 import { createMyProfile } from "@/services/customer.service";
 import type { PersonType } from "@/types/customer";
 import { getApiErrorMessage } from "@/utils/apiError";
+import { maskCpfCnpj } from "@/utils/mask";
 
 export default function CompleteProfilePage() {
   const router = useRouter();
@@ -103,8 +104,11 @@ export default function CompleteProfilePage() {
             <Input
               id="cpfCnpj"
               required
+              inputMode="numeric"
+              placeholder={personType === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
+              maxLength={18}
               value={cpfCnpj}
-              onChange={(event) => setCpfCnpj(event.target.value)}
+              onChange={(event) => setCpfCnpj(maskCpfCnpj(event.target.value))}
             />
           </div>
 

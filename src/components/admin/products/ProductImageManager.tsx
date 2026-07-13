@@ -1,17 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { addProductImage, deleteProductImage } from "@/services/product.service";
 import type { ProductImage } from "@/types/product";
 import { confirmToast } from "@/utils/confirmToast";
 import { getApiErrorMessage } from "@/utils/apiError";
+
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 interface ProductImageManagerProps {
   productId: number;
@@ -20,23 +22,35 @@ interface ProductImageManagerProps {
 }
 
 export function ProductImageManager({ productId, images, onChange }: ProductImageManagerProps) {
-  const [imageUrl, setImageUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  async function handleAdd(event: FormEvent) {
-    event.preventDefault();
-    setIsAdding(true);
+  function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // permite selecionar o mesmo arquivo de novo depois
 
+    if (!file) return;
+
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      toast.error("Envie um arquivo JPEG, PNG ou WEBP.");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error("Arquivo excede o tamanho máximo permitido (10MB).");
+      return;
+    }
+
+    handleUpload(file);
+  }
+
+  async function handleUpload(file: File) {
+    setIsAdding(true);
     try {
       const nextSortOrder =
         images.length === 0 ? 0 : Math.max(...images.map((i) => i.sort_order)) + 1;
-      const created = await addProductImage(productId, {
-        image_url: imageUrl,
-        sort_order: nextSortOrder,
-      });
+      const created = await addProductImage(productId, file, nextSortOrder);
       onChange([...images, created]);
-      setImageUrl("");
       toast.success("Imagem adicionada.");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Não foi possível adicionar esta imagem."));
@@ -105,25 +119,24 @@ export function ProductImageManager({ productId, images, onChange }: ProductImag
           </div>
         )}
 
-        <form onSubmit={handleAdd} className="flex items-end gap-3 border-t border-border pt-4">
-          <div className="flex flex-1 flex-col gap-1.5">
-            <label htmlFor="image-url" className="text-sm font-medium text-foreground">
-              URL da imagem
-            </label>
-            <Input
-              id="image-url"
-              type="url"
-              required
-              placeholder="https://..."
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
-          </div>
-          <Button type="submit" disabled={isAdding}>
+        <div className="flex flex-col gap-1.5 border-t border-border pt-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleFileSelected}
+          />
+          <Button
+            type="button"
+            disabled={isAdding}
+            onClick={() => fileInputRef.current?.click()}
+          >
             <Plus className="size-3.5" aria-hidden />
-            {isAdding ? "Adicionando..." : "Adicionar"}
+            {isAdding ? "Enviando..." : "Adicionar imagem"}
           </Button>
-        </form>
+          <p className="text-xs text-muted-foreground">JPEG, PNG ou WEBP — até 10MB.</p>
+        </div>
       </CardContent>
     </Card>
   );

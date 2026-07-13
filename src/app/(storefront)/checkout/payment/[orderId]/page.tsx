@@ -54,22 +54,37 @@ export default function PaymentPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const orderId = Number(params.orderId);
-    if (!Number.isInteger(orderId)) {
-      setPageStatus("error");
-      return;
-    }
+    let cancelled = false;
 
-    getMyOrderById(orderId)
-      .then((data) => {
+    async function loadOrder() {
+      await Promise.resolve();
+      if (cancelled) return;
+
+      const orderId = Number(params.orderId);
+      if (!Number.isInteger(orderId)) {
+        setPageStatus("error");
+        return;
+      }
+
+      try {
+        const data = await getMyOrderById(orderId);
+        if (cancelled) return;
         if (data.status !== "PENDING_PAYMENT" && data.status !== "PAYMENT_FAILED") {
           router.replace(`/account/orders/${data.id}`);
           return;
         }
         setOrder(data);
         setPageStatus("ready");
-      })
-      .catch(() => setPageStatus("error"));
+      } catch {
+        if (!cancelled) setPageStatus("error");
+      }
+    }
+
+    loadOrder();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, params.orderId, router]);
 
   function handleCardNumberChange(e: ChangeEvent<HTMLInputElement>) {

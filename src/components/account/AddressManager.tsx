@@ -16,6 +16,7 @@ import {
 import type { Address, AddressCreateInput, AddressType } from "@/types/address";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { confirmToast } from "@/utils/confirmToast";
+import { maskZipCode } from "@/utils/mask";
 
 const ADDRESS_TYPE_LABEL: Record<AddressType, string> = {
   SHIPPING: "Entrega",
@@ -38,7 +39,7 @@ const EMPTY_FORM: AddressCreateInput = {
 function toForm(address: Address): AddressCreateInput {
   return {
     name: address.name,
-    zip_code: address.zip_code,
+    zip_code: maskZipCode(address.zip_code),
     street: address.street,
     number: address.number,
     district: address.district,
@@ -235,8 +236,13 @@ export function AddressManager() {
                     <Input
                       id="addr-zip"
                       required
+                      inputMode="numeric"
+                      placeholder="00000-000"
+                      maxLength={9}
                       value={form.zip_code}
-                      onChange={(e) => setForm((f) => ({ ...f, zip_code: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, zip_code: maskZipCode(e.target.value) }))
+                      }
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">

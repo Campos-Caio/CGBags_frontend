@@ -5,6 +5,8 @@ import type { User } from "@/types/auth";
 
 export interface ListUsersParams {
   search?: string;
+  is_active?: boolean;
+  is_admin?: boolean;
   skip?: number;
   limit?: number;
 }

@@ -29,6 +29,7 @@ export async function updateMyProfile(data: CustomerUpdateInput): Promise<Custom
 
 export interface ListCustomersAdminParams {
   search?: string;
+  is_active?: boolean;
   skip?: number;
   limit?: number;
 }

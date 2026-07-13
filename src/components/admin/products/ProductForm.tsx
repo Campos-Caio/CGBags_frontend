@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { listCategories } from "@/services/category.service";
@@ -85,14 +91,25 @@ function toInput(form: ProductFormState): ProductAdminInput {
 
 interface ProductFormProps {
   product?: Product;
+  formId: string;
   onSubmit: (data: ProductAdminInput) => Promise<void>;
-  submitLabel: string;
+  onSavingChange?: (isSaving: boolean) => void;
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export function ProductForm({ product, onSubmit, submitLabel }: ProductFormProps) {
+export interface ProductFormHandle {
+  /** Salva a partir de fora do form (ex.: "salvar e sair" no header). Retorna se deu certo. */
+  save: () => Promise<boolean>;
+}
+
+export const ProductForm = forwardRef<ProductFormHandle, ProductFormProps>(function ProductForm(
+  { product, formId, onSubmit, onSavingChange, onDirtyChange },
+  ref
+) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [form, setForm] = useState<ProductFormState>(product ? toForm(product) : EMPTY_FORM);
-  const [isSaving, setIsSaving] = useState(false);
+  const initialForm = product ? toForm(product) : EMPTY_FORM;
+  const [form, setForm] = useState<ProductFormState>(initialForm);
+  const [savedForm, setSavedForm] = useState<ProductFormState>(initialForm);
 
   useEffect(() => {
     listCategories()
@@ -102,16 +119,29 @@ export function ProductForm({ product, onSubmit, submitLabel }: ProductFormProps
       });
   }, []);
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setIsSaving(true);
+  useEffect(() => {
+    onDirtyChange?.(JSON.stringify(form) !== JSON.stringify(savedForm));
+  }, [form, savedForm, onDirtyChange]);
+
+  async function doSubmit(): Promise<boolean> {
+    onSavingChange?.(true);
     try {
       await onSubmit(toInput(form));
+      setSavedForm(form);
+      return true;
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Não foi possível salvar este produto."));
+      return false;
     } finally {
-      setIsSaving(false);
+      onSavingChange?.(false);
     }
+  }
+
+  useImperativeHandle(ref, () => ({ save: doSubmit }));
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    await doSubmit();
   }
 
   return (
@@ -120,7 +150,7 @@ export function ProductForm({ product, onSubmit, submitLabel }: ProductFormProps
         <CardTitle>Dados do produto</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Field label="Nome" htmlFor="p-name">
             <Input
               id="p-name"
@@ -280,17 +310,11 @@ export function ProductForm({ product, onSubmit, submitLabel }: ProductFormProps
             />
             Produto ativo (visível na loja)
           </label>
-
-          <div className="flex gap-3">
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? "Salvando..." : submitLabel}
-            </Button>
-          </div>
         </form>
       </CardContent>
     </Card>
   );
-}
+});
 
 function Field({
   label,

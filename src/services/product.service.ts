@@ -6,7 +6,6 @@ import type {
   ProductAdminInput,
   ProductAdminUpdateInput,
   ProductImage,
-  ProductImageInput,
 } from "@/types/product";
 
 interface ListProductsParams {
@@ -78,9 +77,20 @@ export async function deleteProduct(id: number): Promise<void> {
 
 export async function addProductImage(
   productId: number,
-  data: ProductImageInput
+  file: File,
+  sortOrder: number
 ): Promise<ProductImage> {
-  const response = await api.post<ProductImage>(`/products/${productId}/images`, data);
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("sort_order", String(sortOrder));
+  // A instancia `api` tem Content-Type: application/json fixo por padrao
+  // (src/lib/api.ts) — sem isto, o axios serializa o FormData como JSON
+  // em vez de multipart (perde o arquivo) porque ve um Content-Type de
+  // JSON ja declarado. `undefined` remove o header desta chamada e deixa
+  // o proprio axios montar o multipart com o boundary correto.
+  const response = await api.post<ProductImage>(`/products/${productId}/images`, formData, {
+    headers: { "Content-Type": undefined },
+  });
   return response.data;
 }
 

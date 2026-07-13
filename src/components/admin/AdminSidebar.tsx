@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Home } from "lucide-react";
 
 import { ADMIN_NAV_LINKS } from "@/constants/adminNav";
 import { useAuth } from "@/context/AuthContext";
@@ -46,13 +47,23 @@ export function AdminSidebar() {
         </nav>
       </div>
 
-      <button
-        type="button"
-        onClick={() => logout()}
-        className="rounded-lg px-3 py-2 text-left text-sm font-medium text-primary/80 transition-colors hover:bg-muted hover:text-primary"
-      >
-        Sair
-      </button>
+      <div className="flex flex-col gap-1">
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-primary/80 transition-colors hover:bg-muted hover:text-primary"
+        >
+          <Home className="size-4" aria-hidden />
+          Voltar para a loja
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => logout()}
+          className="rounded-lg px-3 py-2 text-left text-sm font-medium text-primary/80 transition-colors hover:bg-muted hover:text-primary"
+        >
+          Sair
+        </button>
+      </div>
     </aside>
   );
 }

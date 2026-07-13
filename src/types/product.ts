@@ -1,8 +1,11 @@
 export interface ProductImage {
   id: number;
   product_id: number;
+  image_key: string;
   image_url: string;
   sort_order: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Product {
@@ -43,8 +46,3 @@ export interface ProductAdminInput {
 }
 
 export type ProductAdminUpdateInput = Partial<ProductAdminInput>;
-
-export interface ProductImageInput {
-  image_url: string;
-  sort_order: number;
-}

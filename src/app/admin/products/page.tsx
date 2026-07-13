@@ -5,28 +5,25 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { ProductsTable } from "@/components/admin/products/ProductsTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useAdminList } from "@/hooks/useAdminList";
 import { listCategories } from "@/services/category.service";
 import { listProductsAdmin } from "@/services/product.service";
 import type { Category } from "@/types/category";
 import type { Product } from "@/types/product";
 import { getApiErrorMessage } from "@/utils/apiError";
 
-const PAGE_SIZE = 20;
-
 type StatusFilter = "all" | "active" | "inactive";
 
 export default function AdminProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [status, setStatus] = useState<StatusFilter>("all");
-  const [page, setPage] = useState(0);
 
   useEffect(() => {
     listCategories()
@@ -36,38 +33,25 @@ export default function AdminProductsPage() {
       });
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadProducts() {
-      await Promise.resolve();
-      if (cancelled) return;
-      setIsLoading(true);
-
-      try {
-        const data = await listProductsAdmin({
-          search: search || undefined,
-          category_id: categoryId === "" ? undefined : categoryId,
-          is_active: status === "all" ? undefined : status === "active",
-          skip: page * PAGE_SIZE,
-          limit: PAGE_SIZE,
-        });
-        if (!cancelled) setProducts(data);
-      } catch (error) {
-        if (!cancelled) {
-          toast.error(getApiErrorMessage(error, "Não foi possível carregar os produtos."));
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    loadProducts();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [search, categoryId, status, page]);
+  const {
+    data: products,
+    setData: setProducts,
+    isLoading,
+    page,
+    setPage,
+    pageSize,
+  } = useAdminList<Product>({
+    fetchPage: ({ skip, limit }) =>
+      listProductsAdmin({
+        search: search || undefined,
+        category_id: categoryId === "" ? undefined : categoryId,
+        is_active: status === "all" ? undefined : status === "active",
+        skip,
+        limit,
+      }),
+    deps: [search, categoryId, status],
+    errorMessage: "Não foi possível carregar os produtos.",
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -139,24 +123,7 @@ export default function AdminProductsPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page === 0}
-          onClick={() => setPage((p) => Math.max(0, p - 1))}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={products.length < PAGE_SIZE}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Próxima
-        </Button>
-      </div>
+      <AdminPagination page={page} onPageChange={setPage} itemCount={products.length} pageSize={pageSize} />
     </div>
   );
 }

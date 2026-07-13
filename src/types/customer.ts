@@ -16,6 +16,8 @@ export interface Customer {
   created_at: string;
   user?: User;
   addresses?: Address[];
+  /** Só vem preenchido na listagem admin (GET /customers/) — usado pro aviso de exclusão. */
+  cart_item_count?: number;
 }
 
 export interface CustomerCreateInput {

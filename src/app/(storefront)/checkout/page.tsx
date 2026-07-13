@@ -70,6 +70,9 @@ export default function CheckoutPage() {
         const defaultAddr = data.find((a) => a.is_default) ?? data[0];
         if (defaultAddr) setSelectedAddressId(defaultAddr.id);
       })
+      .catch((error) => {
+        toast.error(getApiErrorMessage(error, "Não foi possível carregar seus endereços."));
+      })
       .finally(() => setAddressesLoading(false));
   }, [isAuthenticated]);
 
@@ -80,40 +83,49 @@ export default function CheckoutPage() {
     }
   }, [cart, cartLoading, router]);
 
+  const selectedAddress = addresses.find((a) => a.id === selectedAddressId) ?? null;
+
   useEffect(() => {
-    const address = addresses.find((a) => a.id === selectedAddressId);
-    if (!address) {
-      setFreightOptions([]);
-      setSelectedFreightId(null);
-      return;
-    }
+    if (!selectedAddress) return;
 
     let cancelled = false;
-    setFreightLoading(true);
-    setFreightError(null);
-    setSelectedFreightId(null);
 
-    calculateFreight(address.zip_code)
-      .then((options) => {
+    async function loadFreight() {
+      await Promise.resolve();
+      if (cancelled) return;
+
+      setFreightLoading(true);
+      setFreightError(null);
+      setSelectedFreightId(null);
+
+      try {
+        const options = await calculateFreight(selectedAddress!.zip_code);
         if (cancelled) return;
         setFreightOptions(options);
         if (options.length > 0) setSelectedFreightId(options[0].id);
-      })
-      .catch((error) => {
+      } catch (error) {
         if (cancelled) return;
         setFreightOptions([]);
         setFreightError(getApiErrorMessage(error, "Não foi possível calcular o frete."));
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setFreightLoading(false);
-      });
+      }
+    }
+
+    loadFreight();
 
     return () => {
       cancelled = true;
     };
-  }, [addresses, selectedAddressId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refaz o fetch por zip_code/id, nao pela identidade do objeto Address inteiro
+  }, [selectedAddress?.id, selectedAddress?.zip_code]);
 
-  const selectedFreight = freightOptions.find((o) => o.id === selectedFreightId) ?? null;
+  // Sem endereco valido selecionado, as opcoes/selecao de frete carregadas antes
+  // (de um endereco anterior) ficam obsoletas — derivado aqui em vez de limpo via
+  // effect, pra nao disparar setState sincrono sem nenhum trabalho assincrono.
+  const activeFreightOptions = selectedAddress ? freightOptions : [];
+  const activeSelectedFreightId = selectedAddress ? selectedFreightId : null;
+  const selectedFreight = activeFreightOptions.find((o) => o.id === activeSelectedFreightId) ?? null;
   const cartTotal = Number(cart?.total ?? "0");
   const grandTotal = cartTotal + (selectedFreight ? freightPrice(selectedFreight) : 0);
 
@@ -241,19 +253,19 @@ export default function CheckoutPage() {
                   </p>
                 ) : freightError ? (
                   <p className="py-4 text-center text-sm text-destructive">{freightError}</p>
-                ) : freightOptions.length === 0 ? (
+                ) : activeFreightOptions.length === 0 ? (
                   <p className="py-4 text-center text-sm text-muted-foreground">
                     Nenhuma opção de frete disponível para este endereço.
                   </p>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {freightOptions.map((option) => {
+                    {activeFreightOptions.map((option) => {
                       const deliveryLabel = freightDeliveryLabel(option);
                       return (
                         <label
                           key={option.id}
                           className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3.5 transition-colors ${
-                            selectedFreightId === option.id
+                            activeSelectedFreightId === option.id
                               ? "border-ring bg-muted/30"
                               : "border-border hover:bg-muted/20"
                           }`}
@@ -262,7 +274,7 @@ export default function CheckoutPage() {
                             type="radio"
                             name="freight"
                             value={option.id}
-                            checked={selectedFreightId === option.id}
+                            checked={activeSelectedFreightId === option.id}
                             onChange={() => setSelectedFreightId(option.id)}
                             className="mt-0.5 accent-foreground"
                           />
@@ -297,7 +309,7 @@ export default function CheckoutPage() {
             type="submit"
             size="lg"
             disabled={
-              isSubmitting || !selectedAddressId || !selectedFreightId || addresses.length === 0
+              isSubmitting || !selectedAddress || !activeSelectedFreightId || addresses.length === 0
             }
           >
             {isSubmitting ? "Criando pedido..." : "Ir para o pagamento"}

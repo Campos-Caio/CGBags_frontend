@@ -1,56 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { useState } from "react";
 
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { UsersTable } from "@/components/admin/users/UsersTable";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminList } from "@/hooks/useAdminList";
 import { listUsersAdmin } from "@/services/user.service";
 import type { User } from "@/types/auth";
-import { getApiErrorMessage } from "@/utils/apiError";
-
-const PAGE_SIZE = 20;
 
 export default function AdminUsersPage() {
   const { user: currentUser } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(0);
+  const [showInactive, setShowInactive] = useState(false);
+  const [roleFilter, setRoleFilter] = useState<"" | "admin" | "customer">("");
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadUsers() {
-      await Promise.resolve();
-      if (cancelled) return;
-      setIsLoading(true);
-
-      try {
-        const data = await listUsersAdmin({
-          search: search || undefined,
-          skip: page * PAGE_SIZE,
-          limit: PAGE_SIZE,
-        });
-        if (!cancelled) setUsers(data);
-      } catch (error) {
-        if (!cancelled) {
-          toast.error(getApiErrorMessage(error, "Não foi possível carregar os usuários."));
-        }
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    loadUsers();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [search, page]);
+  const {
+    data: users,
+    setData: setUsers,
+    isLoading,
+    page,
+    setPage,
+    pageSize,
+  } = useAdminList<User>({
+    fetchPage: ({ skip, limit }) =>
+      listUsersAdmin({
+        search: search || undefined,
+        is_active: !showInactive,
+        is_admin: roleFilter ? roleFilter === "admin" : undefined,
+        skip,
+        limit,
+      }),
+    deps: [search, showInactive, roleFilter],
+    errorMessage: "Não foi possível carregar os usuários.",
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,6 +52,29 @@ export default function AdminUsersPage() {
             }}
             className="max-w-xs"
           />
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => {
+                setPage(0);
+                setShowInactive(e.target.checked);
+              }}
+            />
+            Ver somente inativos/excluídos
+          </label>
+          <select
+            value={roleFilter}
+            onChange={(e) => {
+              setPage(0);
+              setRoleFilter(e.target.value as "" | "admin" | "customer");
+            }}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          >
+            <option value="">Todos os papéis</option>
+            <option value="admin">Admins</option>
+            <option value="customer">Clientes</option>
+          </select>
         </CardContent>
       </Card>
 
@@ -80,24 +88,7 @@ export default function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={page === 0}
-          onClick={() => setPage((p) => Math.max(0, p - 1))}
-        >
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={users.length < PAGE_SIZE}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Próxima
-        </Button>
-      </div>
+      <AdminPagination page={page} onPageChange={setPage} itemCount={users.length} pageSize={pageSize} />
     </div>
   );
 }
