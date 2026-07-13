@@ -1,7 +1,18 @@
-import Link from "next/link";
-
 import { Container } from "@/components/ui/container";
 import { COMPANY_INFO } from "@/constants/nav";
+
+// "#" e o sentinela de "ainda nao definido" (ver COMPANY_INFO em constants/nav.ts)
+// — filtra pra nunca renderizar um link morto pro cliente.
+const CONTACT_LINKS = [
+  { label: "WhatsApp", href: COMPANY_INFO.whatsapp },
+  { label: "Email", href: COMPANY_INFO.email === "#" ? "#" : `mailto:${COMPANY_INFO.email}` },
+  { label: "Instagram", href: COMPANY_INFO.instagram },
+  { label: "Facebook", href: COMPANY_INFO.facebook },
+].filter((link) => link.href !== "#");
+
+// Paginas institucionais (privacidade/termos) ainda nao existem — a secao
+// inteira fica oculta ate pelo menos uma delas ser publicada.
+const INSTITUTIONAL_LINKS: { label: string; href: string }[] = [];
 
 function Footer() {
   const year = new Date().getFullYear();
@@ -18,50 +29,37 @@ function Footer() {
           </p>
         </div>
 
-        <div>
-          <h3 className="font-heading text-base font-semibold text-foreground">Contato</h3>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li>
-              <a href={COMPANY_INFO.whatsapp} className="hover:text-foreground">
-                WhatsApp
-              </a>
-            </li>
-            <li>
-              <a
-                href={COMPANY_INFO.email === "#" ? "#" : `mailto:${COMPANY_INFO.email}`}
-                className="hover:text-foreground"
-              >
-                Email
-              </a>
-            </li>
-            <li>
-              <a href={COMPANY_INFO.instagram} className="hover:text-foreground">
-                Instagram
-              </a>
-            </li>
-            <li>
-              <a href={COMPANY_INFO.facebook} className="hover:text-foreground">
-                Facebook
-              </a>
-            </li>
-          </ul>
-        </div>
+        {CONTACT_LINKS.length > 0 && (
+          <div>
+            <h3 className="font-heading text-base font-semibold text-foreground">Contato</h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {CONTACT_LINKS.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} className="hover:text-foreground">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-        <div>
-          <h3 className="font-heading text-base font-semibold text-foreground">Institucional</h3>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li>
-              <Link href="/privacy" className="hover:text-foreground">
-                Política de Privacidade
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms" className="hover:text-foreground">
-                Termos de Uso
-              </Link>
-            </li>
-          </ul>
-        </div>
+        {INSTITUTIONAL_LINKS.length > 0 && (
+          <div>
+            <h3 className="font-heading text-base font-semibold text-foreground">
+              Institucional
+            </h3>
+            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+              {INSTITUTIONAL_LINKS.map((link) => (
+                <li key={link.href}>
+                  <a href={link.href} className="hover:text-foreground">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </Container>
 
       <div className="border-t border-border py-6">

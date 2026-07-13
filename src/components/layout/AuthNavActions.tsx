@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Package, User } from "lucide-react";
+import { LayoutDashboard, LogOut, Package, User } from "lucide-react";
 import { DropdownMenu } from "radix-ui";
 import { toast } from "sonner";
 
@@ -14,7 +14,7 @@ const menuItemClass =
 
 function AuthNavActions() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
 
   async function handleLogout() {
     try {
@@ -64,6 +64,15 @@ function AuthNavActions() {
                 Meus pedidos
               </Link>
             </DropdownMenu.Item>
+
+            {user?.is_admin && (
+              <DropdownMenu.Item asChild>
+                <Link href="/admin" className={menuItemClass}>
+                  <LayoutDashboard className="size-4" aria-hidden />
+                  Painel de admin
+                </Link>
+              </DropdownMenu.Item>
+            )}
 
             <DropdownMenu.Separator className="my-1 h-px bg-border" />
 

@@ -13,18 +13,22 @@ import { Container } from "@/components/ui/container";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import { listMyOrders } from "@/services/order.service";
-import type { Order } from "@/types/order";
+import type { Order, OrderStatus } from "@/types/order";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { formatCurrency } from "@/utils/currency";
 import { formatDate } from "@/utils/date";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_RELEVANCE_RANK } from "@/utils/orderStatus";
 
 type PageStatus = "loading" | "ready" | "needs-profile" | "error";
+
+const STATUS_FILTER_OPTIONS = Object.entries(ORDER_STATUS_LABEL) as [OrderStatus, string][];
 
 export default function OrdersPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [status, setStatus] = useState<PageStatus>("loading");
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | "">("");
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -43,7 +47,10 @@ export default function OrdersPage() {
       try {
         const data = await listMyOrders();
         if (cancelled) return;
-        setOrders(data);
+        const sorted = [...data].sort(
+          (a, b) => ORDER_STATUS_RELEVANCE_RANK[a.status] - ORDER_STATUS_RELEVANCE_RANK[b.status]
+        );
+        setOrders(sorted);
         setStatus("ready");
       } catch (error) {
         if (cancelled) return;
@@ -110,15 +117,40 @@ export default function OrdersPage() {
     );
   }
 
+  const visibleOrders = statusFilter
+    ? orders.filter((order) => order.status === statusFilter)
+    : orders;
+
   return (
     <Container className="py-12 sm:py-16">
       <div className="mx-auto max-w-2xl">
-        <h1 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
-          Meus pedidos
-        </h1>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="font-heading text-2xl font-semibold text-foreground sm:text-3xl">
+            Meus pedidos
+          </h1>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as OrderStatus | "")}
+            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          >
+            <option value="">Todos os status</option>
+            {STATUS_FILTER_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {visibleOrders.length === 0 && (
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            Nenhum pedido com esse status.
+          </p>
+        )}
 
         <div className="mt-8 flex flex-col gap-4">
-          {orders.map((order) => {
+          {visibleOrders.map((order) => {
             const itemCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
 
             return (

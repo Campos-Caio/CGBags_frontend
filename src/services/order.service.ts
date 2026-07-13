@@ -1,5 +1,7 @@
+import axios from "axios";
+
 import { api } from "@/lib/api";
-import type { Order } from "@/types/order";
+import type { Order, OrderStatus } from "@/types/order";
 
 export async function listMyOrders(): Promise<Order[]> {
   const response = await api.get<Order[]>("/orders/");
@@ -35,5 +37,41 @@ export async function payOrder(orderId: number, card: CardPaymentInput): Promise
 
 export async function cancelOrder(orderId: number): Promise<Order> {
   const response = await api.post<Order>(`/orders/${orderId}/cancel`);
+  return response.data;
+}
+
+// --- Rotas administrativas ---
+
+export interface ListOrdersAdminParams {
+  status?: OrderStatus;
+  search?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export async function listOrdersAdmin(params?: ListOrdersAdminParams): Promise<Order[]> {
+  const response = await api.get<Order[]>("/admin/orders", { params });
+  return response.data;
+}
+
+export async function getOrderByIdAdmin(id: number): Promise<Order | null> {
+  try {
+    const response = await api.get<Order>(`/admin/orders/${id}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function updateOrderStatusAdmin(id: number, status: OrderStatus): Promise<Order> {
+  const response = await api.patch<Order>(`/admin/orders/${id}/status`, { status });
+  return response.data;
+}
+
+export async function cancelOrderAdmin(id: number): Promise<Order> {
+  const response = await api.post<Order>(`/admin/orders/${id}/cancel`);
   return response.data;
 }
