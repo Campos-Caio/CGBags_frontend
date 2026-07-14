@@ -1,5 +1,10 @@
+import Image from "next/image";
+
 import { Container } from "@/components/ui/container";
 import { COMPANY_INFO } from "@/constants/nav";
+
+const LOGO_URL =
+  "https://pub-f05bd9d6faa24b25b80b3a504637c87e.r2.dev/CG%20BAGS%20LOGO%2006%20COM%20SLOGAN%20PNG.png";
 
 // "#" e o sentinela de "ainda nao definido" (ver COMPANY_INFO em constants/nav.ts)
 // — filtra pra nunca renderizar um link morto pro cliente.
@@ -19,11 +24,9 @@ function Footer() {
 
   return (
     <footer className="border-t border-border bg-muted/30">
-      <Container className="grid gap-10 py-12 sm:grid-cols-2 md:grid-cols-3">
-        <div>
-          <h3 className="font-heading text-base font-semibold text-foreground">
-            {COMPANY_INFO.name}
-          </h3>
+      <Container className="flex flex-wrap justify-center gap-10 py-12 text-center">
+        <div className="flex flex-col items-center">
+          <Image src={LOGO_URL} alt={COMPANY_INFO.name} width={315} height={235} className="h-24 w-auto" />
           <p className="mt-3 text-sm text-muted-foreground">
             Produtos resistentes, feitos para quem vive o agro.
           </p>
