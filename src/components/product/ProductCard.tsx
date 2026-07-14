@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { StockBadge } from "@/components/product/StockBadge";
 import type { Product } from "@/types/product";
 import { formatCurrency } from "@/utils/currency";
+import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
@@ -16,23 +17,39 @@ interface ProductCardProps {
 
 function ProductCard({ product, showStock = false }: ProductCardProps) {
   const coverImage = product.images[0]?.image_url;
+  const hoverImage = product.images[1]?.image_url;
 
   return (
     <Link
       href={`/products/${product.id}`}
       aria-label={`Ver detalhes de ${product.name}`}
-      className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
     >
       <Card className="h-full transition-shadow hover:shadow-md">
         <div className="relative aspect-square w-full overflow-hidden bg-muted">
           {coverImage ? (
-            <Image
-              src={coverImage}
-              alt={product.name}
-              fill
-              className="object-cover"
-              sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-            />
+            <>
+              <Image
+                src={coverImage}
+                alt={product.name}
+                fill
+                className={cn(
+                  "object-cover transition-opacity duration-300",
+                  hoverImage && "group-hover:opacity-0"
+                )}
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+              />
+              {hoverImage && (
+                <Image
+                  src={hoverImage}
+                  alt=""
+                  aria-hidden
+                  fill
+                  className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                />
+              )}
+            </>
           ) : (
             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
               <PackageSearch className="size-10" aria-hidden />
