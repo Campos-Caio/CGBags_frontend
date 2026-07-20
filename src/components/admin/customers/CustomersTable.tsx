@@ -5,6 +5,9 @@ import { useState } from "react";
 import { Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { RowActionsMenu } from "@/components/admin/data/RowActionsMenu";
+import { EmptyState } from "@/components/admin/feedback/EmptyState";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteCustomerAdmin } from "@/services/customer.service";
 import type { Customer } from "@/types/customer";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -27,9 +31,16 @@ const PERSON_TYPE_LABEL: Record<Customer["person_type"], string> = {
 interface CustomersTableProps {
   customers: Customer[];
   onCustomersChange: (customers: Customer[]) => void;
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 }
 
-export function CustomersTable({ customers, onCustomersChange }: CustomersTableProps) {
+export function CustomersTable({
+  customers,
+  onCustomersChange,
+  hasActiveFilters = false,
+  onClearFilters,
+}: CustomersTableProps) {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   function handleDelete(customer: Customer) {
@@ -58,8 +69,13 @@ export function CustomersTable({ customers, onCustomersChange }: CustomersTableP
   }
 
   if (customers.length === 0) {
-    return (
-      <p className="py-8 text-center text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
+    return hasActiveFilters ? (
+      <EmptyState
+        message="Nenhum resultado para estes filtros."
+        action={onClearFilters ? { label: "Limpar filtros", onClick: onClearFilters } : undefined}
+      />
+    ) : (
+      <EmptyState message="Nenhum cliente encontrado." />
     );
   }
 
@@ -89,32 +105,33 @@ export function CustomersTable({ customers, onCustomersChange }: CustomersTableP
               {customer.user?.email ?? "-"}
             </TableCell>
             <TableCell>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  customer.is_active
-                    ? "bg-green-100 text-green-800"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
+              <Badge variant={customer.is_active ? "success" : "muted"}>
                 {customer.is_active ? "Ativo" : "Inativo"}
-              </span>
+              </Badge>
             </TableCell>
             <TableCell>
-              <div className="flex justify-end gap-1.5">
-                <Button variant="outline" size="sm" aria-label="Ver cliente" asChild>
-                  <Link href={`/admin/customers/${customer.id}`}>
-                    <Eye className="size-3.5" aria-hidden />
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  aria-label="Excluir cliente"
-                  disabled={deletingId === customer.id}
-                  onClick={() => handleDelete(customer)}
-                >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </Button>
+              <div className="flex items-center justify-end gap-1.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" aria-label="Ver cliente" asChild>
+                      <Link href={`/admin/customers/${customer.id}`}>
+                        <Eye className="size-3.5" aria-hidden />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ver cliente</TooltipContent>
+                </Tooltip>
+                <RowActionsMenu
+                  actions={[
+                    {
+                      label: "Excluir cliente",
+                      icon: Trash2,
+                      variant: "destructive",
+                      disabled: deletingId === customer.id,
+                      onClick: () => handleDelete(customer),
+                    },
+                  ]}
+                />
               </div>
             </TableCell>
           </TableRow>

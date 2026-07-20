@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import type { StockMovement } from "@/types/stock";
 import { formatDateTime } from "@/utils/date";
-import { STOCK_MOVEMENT_TYPE_BADGE_CLASS, STOCK_MOVEMENT_TYPE_LABEL } from "@/utils/stockMovement";
+import { STOCK_MOVEMENT_TYPE_BADGE_VARIANT, STOCK_MOVEMENT_TYPE_LABEL } from "@/utils/stockMovement";
 
 interface MovementsTableProps {
   movements: StockMovement[];
@@ -45,15 +46,16 @@ export function MovementsTable({ movements }: MovementsTableProps) {
                 {formatDateTime(movement.created_at)}
               </TableCell>
               <TableCell>
-                <span className="font-medium text-foreground">{movement.product_name}</span>
+                <span className="font-medium text-foreground">
+                  {movement.product_name}
+                  {movement.variant_label ? ` — ${movement.variant_label}` : ""}
+                </span>
                 <span className="block text-xs text-muted-foreground">{movement.sku}</span>
               </TableCell>
               <TableCell>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${STOCK_MOVEMENT_TYPE_BADGE_CLASS[movement.movement_type]}`}
-                >
+                <Badge variant={STOCK_MOVEMENT_TYPE_BADGE_VARIANT[movement.movement_type]}>
                   {STOCK_MOVEMENT_TYPE_LABEL[movement.movement_type]}
-                </span>
+                </Badge>
               </TableCell>
               <TableCell className="font-medium text-foreground">
                 {delta >= 0 ? "+" : ""}

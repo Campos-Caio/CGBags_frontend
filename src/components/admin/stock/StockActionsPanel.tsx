@@ -6,25 +6,29 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { addStock, adjustStock, listMovements, removeStock } from "@/services/stock.service";
 import type { StockAddInput, StockMovement } from "@/types/stock";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { formatDateTime } from "@/utils/date";
 import { STOCK_MOVEMENT_TYPE_LABEL } from "@/utils/stockMovement";
-import { cn } from "@/lib/utils";
 
 type ActionTab = "add" | "remove" | "adjust";
 
 interface StockActionsPanelProps {
-  productId: number;
+  variantId: number;
   stockQuantity: number;
   onStockChange: (newQuantity: number) => void;
+  /** Sem o Card/titulo em volta — usado dentro de um Dialog, que ja tem sua propria moldura. */
+  bare?: boolean;
 }
 
 export function StockActionsPanel({
-  productId,
+  variantId,
   stockQuantity,
   onStockChange,
+  bare = false,
 }: StockActionsPanelProps) {
   const [tab, setTab] = useState<ActionTab>("add");
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -44,7 +48,7 @@ export function StockActionsPanel({
       await Promise.resolve();
       if (cancelled) return;
       try {
-        const data = await listMovements({ product_id: productId, limit: 10 });
+        const data = await listMovements({ variant_id: variantId, limit: 10 });
         if (!cancelled) setMovements(data);
       } catch (error) {
         if (!cancelled) {
@@ -60,7 +64,7 @@ export function StockActionsPanel({
     return () => {
       cancelled = true;
     };
-  }, [productId]);
+  }, [variantId]);
 
   function resetForm() {
     setQuantity("");
@@ -77,20 +81,20 @@ export function StockActionsPanel({
       let movement: StockMovement;
 
       if (tab === "add") {
-        movement = await addStock(productId, {
+        movement = await addStock(variantId, {
           quantity: Number(quantity),
           movement_type: movementType,
           reason: reason || undefined,
           reference: reference || undefined,
         });
       } else if (tab === "remove") {
-        movement = await removeStock(productId, {
+        movement = await removeStock(variantId, {
           quantity: Number(quantity),
           reason: reason || undefined,
           reference: reference || undefined,
         });
       } else {
-        movement = await adjustStock(productId, {
+        movement = await adjustStock(variantId, {
           new_quantity: Number(newQuantity),
           reason: reason || undefined,
           reference: reference || undefined,
@@ -108,23 +112,15 @@ export function StockActionsPanel({
     }
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Estoque — {stockQuantity} unidades</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex gap-2">
-          <TabButton active={tab === "add"} onClick={() => setTab("add")}>
-            Adicionar
-          </TabButton>
-          <TabButton active={tab === "remove"} onClick={() => setTab("remove")}>
-            Remover
-          </TabButton>
-          <TabButton active={tab === "adjust"} onClick={() => setTab("adjust")}>
-            Ajustar
-          </TabButton>
-        </div>
+  const content = (
+    <div className="flex flex-col gap-4">
+        <Tabs value={tab} onValueChange={(value) => setTab(value as ActionTab)}>
+          <TabsList>
+            <TabsTrigger value="add">Adicionar</TabsTrigger>
+            <TabsTrigger value="remove">Remover</TabsTrigger>
+            <TabsTrigger value="adjust">Ajustar</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {tab === "adjust" ? (
@@ -155,18 +151,21 @@ export function StockActionsPanel({
 
           {tab === "add" && (
             <Field label="Tipo" htmlFor="stock-type">
-              <select
-                id="stock-type"
+              <Select
                 value={movementType}
-                onChange={(e) =>
-                  setMovementType(e.target.value as StockAddInput["movement_type"])
+                onValueChange={(value) =>
+                  setMovementType(value as StockAddInput["movement_type"])
                 }
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               >
-                <option value="PURCHASE">Compra</option>
-                <option value="RETURN">Devolução</option>
-                <option value="INITIAL_LOAD">Carga inicial</option>
-              </select>
+                <SelectTrigger id="stock-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PURCHASE">Compra</SelectItem>
+                  <SelectItem value="RETURN">Devolução</SelectItem>
+                  <SelectItem value="INITIAL_LOAD">Carga inicial</SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
           )}
 
@@ -221,33 +220,18 @@ export function StockActionsPanel({
             </ul>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
-}
 
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
+  if (bare) return content;
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full px-3 py-1 text-sm font-medium transition-colors",
-        active
-          ? "bg-primary text-primary-foreground"
-          : "bg-muted text-muted-foreground hover:text-foreground"
-      )}
-    >
-      {children}
-    </button>
+    <Card>
+      <CardHeader>
+        <CardTitle>Estoque — {stockQuantity} unidades</CardTitle>
+      </CardHeader>
+      <CardContent>{content}</CardContent>
+    </Card>
   );
 }
 

@@ -6,8 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { StockBadge } from "@/components/product/StockBadge";
 import type { Product } from "@/types/product";
-import { formatCurrency } from "@/utils/currency";
 import { cn } from "@/lib/utils";
+import { getAggregateStockQuantity, getDisplayPriceLabel } from "@/utils/productVariants";
 
 interface ProductCardProps {
   product: Product;
@@ -59,7 +59,7 @@ function ProductCard({ product, showStock = false }: ProductCardProps) {
 
         <CardHeader>
           <CardTitle>{product.name}</CardTitle>
-          {showStock && <StockBadge stockQuantity={product.stock_quantity} />}
+          {showStock && <StockBadge stockQuantity={getAggregateStockQuantity(product)} />}
         </CardHeader>
 
         <CardContent className="flex flex-1 flex-col gap-3">
@@ -85,7 +85,7 @@ function ProductCard({ product, showStock = false }: ProductCardProps) {
                 : "font-heading text-lg font-semibold text-foreground"
             }
           >
-            {formatCurrency(product.price)}
+            {getDisplayPriceLabel(product)}
           </p>
         </CardContent>
 

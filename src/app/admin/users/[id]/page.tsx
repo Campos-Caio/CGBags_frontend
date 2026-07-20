@@ -1,22 +1,22 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 
-import { AdminDetailHeader } from "@/components/admin/AdminDetailHeader";
+import { DetailHeader } from "@/components/admin/layout/DetailHeader";
+import { ErrorState } from "@/components/admin/feedback/ErrorState";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { UserRoleToggle } from "@/components/admin/users/UserRoleToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminResource } from "@/hooks/useAdminResource";
 import { deleteUserAdmin, getUserByIdAdmin, updateUserAdmin } from "@/services/user.service";
-import type { User } from "@/types/auth";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { confirmToast } from "@/utils/confirmToast";
 import { formatDateTime } from "@/utils/date";
-
-type PageStatus = "loading" | "ready" | "error";
 
 const FORM_ID = "user-edit-form";
 
@@ -26,38 +26,26 @@ export default function EditUserPage() {
   const { user: currentUser } = useAuth();
   const userId = Number(params.id);
 
-  const [user, setUser] = useState<User | null>(null);
-  const [status, setStatus] = useState<PageStatus>("loading");
+  const { data: user, setData: setUser, status } = useAdminResource({
+    fetch: () => getUserByIdAdmin(userId),
+    deps: [userId],
+    errorMessage: "Não foi possível carregar este usuário.",
+  });
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    getUserByIdAdmin(userId)
-      .then((data) => {
-        if (cancelled) return;
-        if (data === null) {
-          setStatus("error");
-          return;
-        }
-        setUser(data);
-        setEmail(data.email);
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setStatus("error");
-        toast.error(getApiErrorMessage(error, "Não foi possível carregar este usuário."));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
+  // Resincroniza o formulario sempre que um usuario (novo ou diferente) carrega —
+  // por id, nao só na primeira vez, pra nao deixar o e-mail exibido preso no
+  // usuario anterior se o admin navegar entre duas edições sem remount.
+  const [syncedUserId, setSyncedUserId] = useState<number | null>(null);
+  if (user && user.id !== syncedUserId) {
+    setSyncedUserId(user.id);
+    setEmail(user.email);
+    setPassword("");
+  }
 
   async function saveUser(): Promise<boolean> {
     setIsSaving(true);
@@ -81,7 +69,8 @@ export default function EditUserPage() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    await saveUser();
+    const saved = await saveUser();
+    if (saved) router.push("/admin/users");
   }
 
   function handleDelete() {
@@ -105,15 +94,11 @@ export default function EditUserPage() {
   }
 
   if (status === "loading") {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
+    return <LoadingState />;
   }
 
   if (status === "error" || !user) {
-    return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Não foi possível carregar este usuário.
-      </p>
-    );
+    return <ErrorState message="Não foi possível carregar este usuário." />;
   }
 
   const isSelf = currentUser?.id === user.id;
@@ -121,20 +106,14 @@ export default function EditUserPage() {
 
   return (
     <div className="flex flex-col">
-      <AdminDetailHeader
+      <DetailHeader
         backHref="/admin/users"
         backLabel="Voltar para usuários"
         title={user.email}
         subtitle={`Criado em ${formatDateTime(user.created_at)}`}
         isDirty={isDirty}
         onSaveAndLeave={saveUser}
-        meta={
-          <UserRoleToggle
-            user={user}
-            onChange={setUser}
-            disabled={isSelf}
-          />
-        }
+        meta={<UserRoleToggle user={user} onChange={setUser} disabled={isSelf} />}
         actions={
           <Button type="submit" form={FORM_ID} disabled={isSaving}>
             {isSaving ? "Salvando..." : "Salvar alterações"}

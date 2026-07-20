@@ -6,7 +6,11 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { FormSection } from "@/components/admin/form/FormSection";
 import {
   deleteCustomerAddressAdmin,
   updateCustomerAddressAdmin,
@@ -139,23 +143,33 @@ export function CustomerAddressesCard({
 
                 {editingId === null && (
                   <div className="flex shrink-0 gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      aria-label="Editar endereço"
-                      onClick={() => startEdit(address)}
-                    >
-                      <Pencil className="size-3.5" aria-hidden />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      aria-label="Excluir endereço"
-                      disabled={deletingId === address.id}
-                      onClick={() => handleDelete(address)}
-                    >
-                      <Trash2 className="size-3.5" aria-hidden />
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          aria-label="Editar endereço"
+                          onClick={() => startEdit(address)}
+                        >
+                          <Pencil className="size-3.5" aria-hidden />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar endereço</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          aria-label="Excluir endereço"
+                          disabled={deletingId === address.id}
+                          onClick={() => handleDelete(address)}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Excluir endereço</TooltipContent>
+                    </Tooltip>
                   </div>
                 )}
               </div>
@@ -165,139 +179,146 @@ export function CustomerAddressesCard({
 
         {editingId !== null && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 border-t border-border pt-4">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="addr-name" className="text-sm font-medium text-foreground">
-                Identificação
+            <FormSection title="Identificação e tipo">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="addr-name" className="text-sm font-medium text-foreground">
+                  Identificação
+                </label>
+                <Input
+                  id="addr-name"
+                  required
+                  maxLength={100}
+                  value={form.name ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="addr-zip" className="text-sm font-medium text-foreground">
+                    CEP
+                  </label>
+                  <Input
+                    id="addr-zip"
+                    required
+                    inputMode="numeric"
+                    placeholder="00000-000"
+                    maxLength={9}
+                    value={form.zip_code ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, zip_code: maskZipCode(e.target.value) }))
+                    }
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="addr-type" className="text-sm font-medium text-foreground">
+                    Tipo
+                  </label>
+                  <Select
+                    value={form.address_type ?? "SHIPPING"}
+                    onValueChange={(value) =>
+                      setForm((f) => ({ ...f, address_type: value as AddressType }))
+                    }
+                  >
+                    <SelectTrigger id="addr-type" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SHIPPING">Entrega</SelectItem>
+                      <SelectItem value="BILLING">Cobrança</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Endereço">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="addr-street" className="text-sm font-medium text-foreground">
+                  Rua
+                </label>
+                <Input
+                  id="addr-street"
+                  required
+                  value={form.street ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="addr-number" className="text-sm font-medium text-foreground">
+                    Número
+                  </label>
+                  <Input
+                    id="addr-number"
+                    required
+                    value={form.number ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="addr-complement" className="text-sm font-medium text-foreground">
+                    Complemento (opcional)
+                  </label>
+                  <Input
+                    id="addr-complement"
+                    value={form.complement ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, complement: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="addr-district" className="text-sm font-medium text-foreground">
+                  Bairro
+                </label>
+                <Input
+                  id="addr-district"
+                  required
+                  value={form.district ?? ""}
+                  onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))}
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2 flex flex-col gap-1.5">
+                  <label htmlFor="addr-city" className="text-sm font-medium text-foreground">
+                    Cidade
+                  </label>
+                  <Input
+                    id="addr-city"
+                    required
+                    value={form.city ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="addr-state" className="text-sm font-medium text-foreground">
+                    UF
+                  </label>
+                  <Input
+                    id="addr-state"
+                    required
+                    maxLength={2}
+                    value={form.state ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, state: e.target.value.toUpperCase() }))
+                    }
+                  />
+                </div>
+              </div>
+            </FormSection>
+
+            <FormSection title="Preferências">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <Checkbox
+                  checked={form.is_default ?? false}
+                  onCheckedChange={(checked) => setForm((f) => ({ ...f, is_default: checked === true }))}
+                />
+                Definir como endereço padrão
               </label>
-              <Input
-                id="addr-name"
-                required
-                maxLength={100}
-                value={form.name ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="addr-zip" className="text-sm font-medium text-foreground">
-                  CEP
-                </label>
-                <Input
-                  id="addr-zip"
-                  required
-                  inputMode="numeric"
-                  placeholder="00000-000"
-                  maxLength={9}
-                  value={form.zip_code ?? ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, zip_code: maskZipCode(e.target.value) }))
-                  }
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="addr-type" className="text-sm font-medium text-foreground">
-                  Tipo
-                </label>
-                <select
-                  id="addr-type"
-                  value={form.address_type}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, address_type: e.target.value as AddressType }))
-                  }
-                  className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
-                >
-                  <option value="SHIPPING">Entrega</option>
-                  <option value="BILLING">Cobrança</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="addr-street" className="text-sm font-medium text-foreground">
-                Rua
-              </label>
-              <Input
-                id="addr-street"
-                required
-                value={form.street ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, street: e.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="addr-number" className="text-sm font-medium text-foreground">
-                  Número
-                </label>
-                <Input
-                  id="addr-number"
-                  required
-                  value={form.number ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, number: e.target.value }))}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="addr-complement" className="text-sm font-medium text-foreground">
-                  Complemento (opcional)
-                </label>
-                <Input
-                  id="addr-complement"
-                  value={form.complement ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, complement: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="addr-district" className="text-sm font-medium text-foreground">
-                Bairro
-              </label>
-              <Input
-                id="addr-district"
-                required
-                value={form.district ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 flex flex-col gap-1.5">
-                <label htmlFor="addr-city" className="text-sm font-medium text-foreground">
-                  Cidade
-                </label>
-                <Input
-                  id="addr-city"
-                  required
-                  value={form.city ?? ""}
-                  onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="addr-state" className="text-sm font-medium text-foreground">
-                  UF
-                </label>
-                <Input
-                  id="addr-state"
-                  required
-                  maxLength={2}
-                  value={form.state ?? ""}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, state: e.target.value.toUpperCase() }))
-                  }
-                />
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                checked={form.is_default ?? false}
-                onChange={(e) => setForm((f) => ({ ...f, is_default: e.target.checked }))}
-                className="accent-foreground"
-              />
-              Definir como endereço padrão
-            </label>
+            </FormSection>
 
             <div className="flex gap-3">
               <Button type="submit" disabled={isSaving}>

@@ -13,10 +13,15 @@ export async function getMyOrderById(orderId: number): Promise<Order> {
   return response.data;
 }
 
-export async function checkout(addressId: number, shippingServiceId: number): Promise<Order> {
+export async function checkout(
+  addressId: number,
+  shippingServiceId: number,
+  couponCode?: string
+): Promise<Order> {
   const response = await api.post<Order>("/checkout", {
     address_id: addressId,
     shipping_service_id: shippingServiceId,
+    coupon_code: couponCode || undefined,
   });
   return response.data;
 }
@@ -103,5 +108,10 @@ export async function updateOrderStatusAdmin(id: number, status: OrderStatus): P
 
 export async function cancelOrderAdmin(id: number): Promise<Order> {
   const response = await api.post<Order>(`/admin/orders/${id}/cancel`);
+  return response.data;
+}
+
+export async function markOrderPaidManuallyAdmin(id: number, note: string): Promise<Order> {
+  const response = await api.post<Order>(`/admin/orders/${id}/mark-paid`, { note });
   return response.data;
 }

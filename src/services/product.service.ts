@@ -6,6 +6,9 @@ import type {
   ProductAdminInput,
   ProductAdminUpdateInput,
   ProductImage,
+  ProductVariant,
+  ProductVariantInput,
+  ProductVariantUpdateInput,
 } from "@/types/product";
 
 interface ListProductsParams {
@@ -96,4 +99,30 @@ export async function addProductImage(
 
 export async function deleteProductImage(productId: number, imageId: number): Promise<void> {
   await api.delete(`/products/${productId}/images/${imageId}`);
+}
+
+// --- Variantes ---
+
+export async function createProductVariant(
+  productId: number,
+  data: ProductVariantInput
+): Promise<ProductVariant> {
+  const response = await api.post<ProductVariant>(`/products/${productId}/variants`, data);
+  return response.data;
+}
+
+export async function updateProductVariant(
+  productId: number,
+  variantId: number,
+  data: ProductVariantUpdateInput
+): Promise<ProductVariant> {
+  const response = await api.patch<ProductVariant>(
+    `/products/${productId}/variants/${variantId}`,
+    data
+  );
+  return response.data;
+}
+
+export async function deleteProductVariant(productId: number, variantId: number): Promise<void> {
+  await api.delete(`/products/${productId}/variants/${variantId}`);
 }

@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { confirmLeaveWithUnsavedChanges } from "@/utils/confirmToast";
 
-interface AdminDetailHeaderProps {
+interface DetailHeaderProps {
   title: ReactNode;
   subtitle?: ReactNode;
   backHref: string;
@@ -20,7 +21,7 @@ interface AdminDetailHeaderProps {
   onSaveAndLeave?: () => Promise<boolean>;
 }
 
-export function AdminDetailHeader({
+export function DetailHeader({
   title,
   subtitle,
   backHref,
@@ -29,7 +30,7 @@ export function AdminDetailHeader({
   actions,
   isDirty = false,
   onSaveAndLeave,
-}: AdminDetailHeaderProps) {
+}: DetailHeaderProps) {
   const router = useRouter();
 
   function handleBackClick(event: React.MouseEvent) {
@@ -47,17 +48,21 @@ export function AdminDetailHeader({
   return (
     <div className="sticky top-0 z-10 -mx-8 -mt-8 mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-border bg-background px-8 py-4 shadow-sm">
       <div className="flex min-w-0 items-center gap-3">
-        <Link
-          href={backHref}
-          onClick={handleBackClick}
-          aria-label={backLabel}
-          title={backLabel}
-          className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-        </Link>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href={backHref}
+              onClick={handleBackClick}
+              aria-label={backLabel}
+              className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>{backLabel}</TooltipContent>
+        </Tooltip>
         <div className="min-w-0">
-          <h1 className="truncate font-heading text-xl font-semibold text-foreground">{title}</h1>
+          <h1 className="truncate font-heading text-[1.75rem] font-bold tracking-tight text-foreground">{title}</h1>
           {subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>}
         </div>
       </div>

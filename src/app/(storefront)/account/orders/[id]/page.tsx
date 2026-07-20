@@ -208,7 +208,7 @@ export default function OrderDetailPage() {
               {Number(order.discount) > 0 && (
                 <DefinitionRow
                   size="lg"
-                  label="Desconto"
+                  label={order.coupon_code ? `Desconto (${order.coupon_code})` : "Desconto"}
                   value={`- ${formatCurrency(order.discount)}`}
                 />
               )}

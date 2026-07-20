@@ -4,9 +4,13 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { EmptyState } from "@/components/admin/feedback/EmptyState";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   createCategory,
   deleteCategory,
@@ -149,13 +153,11 @@ export function CategoryManager() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {isLoading ? (
-          <p className="py-2 text-sm text-muted-foreground">Carregando...</p>
+          <LoadingState className="py-2" />
         ) : (
           <>
             {categories.length === 0 && editingId === null && (
-              <p className="py-2 text-sm text-muted-foreground">
-                Nenhuma categoria cadastrada.
-              </p>
+              <EmptyState message="Nenhuma categoria cadastrada." />
             )}
 
             {categories.length > 0 && (
@@ -179,23 +181,33 @@ export function CategoryManager() {
 
                     {editingId === null && (
                       <div className="flex shrink-0 gap-1.5">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          aria-label="Editar categoria"
-                          onClick={() => startEdit(category)}
-                        >
-                          <Pencil className="size-3.5" aria-hidden />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          aria-label="Excluir categoria"
-                          disabled={deletingId === category.id}
-                          onClick={() => handleDelete(category)}
-                        >
-                          <Trash2 className="size-3.5" aria-hidden />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              aria-label="Editar categoria"
+                              onClick={() => startEdit(category)}
+                            >
+                              <Pencil className="size-3.5" aria-hidden />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar categoria</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              aria-label="Excluir categoria"
+                              disabled={deletingId === category.id}
+                              onClick={() => handleDelete(category)}
+                            >
+                              <Trash2 className="size-3.5" aria-hidden />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Excluir categoria</TooltipContent>
+                        </Tooltip>
                       </div>
                     )}
                   </div>
@@ -238,24 +250,27 @@ export function CategoryManager() {
                   <label htmlFor="cat-parent" className="text-sm font-medium text-foreground">
                     Categoria pai (opcional)
                   </label>
-                  <select
-                    id="cat-parent"
-                    value={form.parent_id}
-                    onChange={(e) =>
+                  <Select
+                    value={form.parent_id === "" ? "none" : String(form.parent_id)}
+                    onValueChange={(value) =>
                       setForm((f) => ({
                         ...f,
-                        parent_id: e.target.value === "" ? "" : Number(e.target.value),
+                        parent_id: value === "none" ? "" : Number(value),
                       }))
                     }
-                    className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
                   >
-                    <option value="">Nenhuma</option>
-                    {parentOptions.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="cat-parent" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma</SelectItem>
+                      {parentOptions.map((c) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex gap-3">

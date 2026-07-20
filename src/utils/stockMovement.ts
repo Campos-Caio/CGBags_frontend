@@ -1,3 +1,4 @@
+import type { BadgeVariant } from "@/components/ui/badge";
 import type { StockMovementType } from "@/types/stock";
 
 export const STOCK_MOVEMENT_TYPE_LABEL: Record<StockMovementType, string> = {
@@ -8,12 +9,12 @@ export const STOCK_MOVEMENT_TYPE_LABEL: Record<StockMovementType, string> = {
   INITIAL_LOAD: "Carga inicial",
 };
 
-export const STOCK_MOVEMENT_TYPE_BADGE_CLASS: Record<StockMovementType, string> = {
-  PURCHASE: "bg-green-100 text-green-800",
-  RETURN: "bg-green-100 text-green-800",
-  INITIAL_LOAD: "bg-green-100 text-green-800",
-  SALE: "bg-amber-100 text-amber-800",
-  ADJUSTMENT: "bg-blue-100 text-blue-800",
+export const STOCK_MOVEMENT_TYPE_BADGE_VARIANT: Record<StockMovementType, BadgeVariant> = {
+  PURCHASE: "success",
+  RETURN: "success",
+  INITIAL_LOAD: "success",
+  SALE: "warning",
+  ADJUSTMENT: "info",
 };
 
 export function isStockEntry(type: StockMovementType): boolean {

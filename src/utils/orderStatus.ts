@@ -1,3 +1,4 @@
+import type { BadgeVariant } from "@/components/ui/badge";
 import type { OrderStatus } from "@/types/order";
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
@@ -10,14 +11,14 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   CANCELED: "Cancelado",
 };
 
-export const ORDER_STATUS_BADGE_CLASS: Record<OrderStatus, string> = {
-  PENDING_PAYMENT: "bg-accent text-accent-foreground",
-  PAYMENT_FAILED: "bg-destructive/10 text-destructive",
-  PAID: "bg-secondary text-secondary-foreground",
-  PROCESSING: "bg-secondary text-secondary-foreground",
-  SHIPPED: "bg-secondary text-secondary-foreground",
-  DELIVERED: "bg-muted text-muted-foreground",
-  CANCELED: "bg-destructive/10 text-destructive",
+export const ORDER_STATUS_BADGE_VARIANT: Record<OrderStatus, BadgeVariant> = {
+  PENDING_PAYMENT: "accent",
+  PAYMENT_FAILED: "destructive",
+  PAID: "secondary",
+  PROCESSING: "secondary",
+  SHIPPED: "secondary",
+  DELIVERED: "muted",
+  CANCELED: "destructive",
 };
 
 /**

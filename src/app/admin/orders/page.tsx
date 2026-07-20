@@ -2,10 +2,14 @@
 
 import { useState } from "react";
 
-import { AdminPagination } from "@/components/admin/AdminPagination";
+import { PageHeader } from "@/components/admin/layout/PageHeader";
+import { FilterBar } from "@/components/admin/data/FilterBar";
+import { TablePagination } from "@/components/admin/data/TablePagination";
 import { OrdersTable } from "@/components/admin/orders/OrdersTable";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminList } from "@/hooks/useAdminList";
 import { listOrdersAdmin } from "@/services/order.service";
 import type { Order, OrderStatus } from "@/types/order";
@@ -29,50 +33,64 @@ export default function AdminOrdersPage() {
     errorMessage: "Não foi possível carregar os pedidos.",
   });
 
+  function clearFilters() {
+    setPage(0);
+    setSearch("");
+    setStatusFilter("");
+  }
+
+  const hasActiveFilters = search !== "" || statusFilter !== "";
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-foreground">Pedidos</h1>
+      <PageHeader title="Pedidos" />
 
-      <Card>
-        <CardContent className="flex flex-wrap gap-4">
-          <Input
-            placeholder="Buscar por nome ou e-mail do cliente"
-            value={search}
-            onChange={(e) => {
-              setPage(0);
-              setSearch(e.target.value);
-            }}
-            className="max-w-xs"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => {
-              setPage(0);
-              setStatusFilter(e.target.value as OrderStatus | "");
-            }}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          >
-            <option value="">Todos os status</option>
+      <FilterBar
+        resultCount={orders.length}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={clearFilters}
+      >
+        <Input
+          placeholder="Buscar por nome ou e-mail do cliente"
+          value={search}
+          onChange={(e) => {
+            setPage(0);
+            setSearch(e.target.value);
+          }}
+          className="max-w-xs"
+        />
+        <Select
+          value={statusFilter || "all"}
+          onValueChange={(value) => {
+            setPage(0);
+            setStatusFilter(value === "all" ? "" : (value as OrderStatus));
+          }}
+        >
+          <SelectTrigger className="w-52">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
             {STATUS_OPTIONS.map(([value, label]) => (
-              <option key={value} value={value}>
+              <SelectItem key={value} value={value}>
                 {label}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </CardContent>
-      </Card>
+          </SelectContent>
+        </Select>
+      </FilterBar>
 
       <Card>
         <CardContent>
           {isLoading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
+            <LoadingState />
           ) : (
-            <OrdersTable orders={orders} />
+            <OrdersTable orders={orders} hasActiveFilters={hasActiveFilters} onClearFilters={clearFilters} />
           )}
         </CardContent>
       </Card>
 
-      <AdminPagination page={page} onPageChange={setPage} itemCount={orders.length} pageSize={pageSize} />
+      <TablePagination page={page} onPageChange={setPage} itemCount={orders.length} pageSize={pageSize} />
     </div>
   );
 }

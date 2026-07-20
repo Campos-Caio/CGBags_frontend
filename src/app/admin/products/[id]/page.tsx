@@ -1,20 +1,24 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { AdminDetailHeader } from "@/components/admin/AdminDetailHeader";
-import { StatusToggle } from "@/components/admin/StatusToggle";
-import { ProductForm, type ProductFormHandle } from "@/components/admin/products/ProductForm";
+import { DetailHeader } from "@/components/admin/layout/DetailHeader";
+import { ErrorState } from "@/components/admin/feedback/ErrorState";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
+import { StatusToggle } from "@/components/admin/feedback/StatusToggle";
+import {
+  ProductBasicInfoForm,
+  type ProductBasicInfoFormHandle,
+} from "@/components/admin/products/ProductBasicInfoForm";
 import { ProductImageManager } from "@/components/admin/products/ProductImageManager";
-import { StockActionsPanel } from "@/components/admin/stock/StockActionsPanel";
+import { ProductVariantManager } from "@/components/admin/products/ProductVariantManager";
 import { Button } from "@/components/ui/button";
+import { useAdminResource } from "@/hooks/useAdminResource";
 import { getProductByIdAdmin, updateProduct } from "@/services/product.service";
-import type { Product, ProductAdminInput, ProductImage } from "@/types/product";
+import type { ProductAdminUpdateInput, ProductImage, ProductVariant } from "@/types/product";
 import { getApiErrorMessage } from "@/utils/apiError";
-
-type PageStatus = "loading" | "ready" | "error";
 
 const FORM_ID = "product-edit-form";
 
@@ -22,39 +26,19 @@ export default function EditProductPage() {
   const params = useParams<{ id: string }>();
   const productId = Number(params.id);
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [status, setStatus] = useState<PageStatus>("loading");
+  const { data: product, setData: setProduct, status } = useAdminResource({
+    fetch: () => getProductByIdAdmin(productId),
+    deps: [productId],
+    errorMessage: "Não foi possível carregar este produto.",
+  });
+
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
-  const formRef = useRef<ProductFormHandle>(null);
+  const formRef = useRef<ProductBasicInfoFormHandle>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    getProductByIdAdmin(productId)
-      .then((data) => {
-        if (cancelled) return;
-        if (data === null) {
-          setStatus("error");
-          return;
-        }
-        setProduct(data);
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setStatus("error");
-        toast.error(getApiErrorMessage(error, "Não foi possível carregar este produto."));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [productId]);
-
-  async function handleSubmit(data: ProductAdminInput) {
+  async function handleSubmit(data: ProductAdminUpdateInput) {
     const updated = await updateProduct(productId, data);
-    setProduct((prev) => (prev ? { ...prev, ...updated, images: prev.images } : prev));
+    setProduct((prev) => (prev ? { ...prev, ...updated, images: prev.images, variants: prev.variants } : prev));
     toast.success("Produto atualizado.");
   }
 
@@ -63,7 +47,7 @@ export default function EditProductPage() {
     const nextActive = !product.is_active;
     try {
       const updated = await updateProduct(productId, { is_active: nextActive });
-      setProduct((prev) => (prev ? { ...prev, ...updated, images: prev.images } : prev));
+      setProduct((prev) => (prev ? { ...prev, ...updated, images: prev.images, variants: prev.variants } : prev));
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Não foi possível atualizar o status do produto."));
     }
@@ -73,29 +57,30 @@ export default function EditProductPage() {
     setProduct((prev) => (prev ? { ...prev, images } : prev));
   }
 
-  function handleStockChange(newQuantity: number) {
-    setProduct((prev) => (prev ? { ...prev, stock_quantity: newQuantity } : prev));
+  function handleVariantsChange(variants: ProductVariant[]) {
+    setProduct((prev) => (prev ? { ...prev, variants } : prev));
   }
 
   if (status === "loading") {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
+    return <LoadingState />;
   }
 
   if (status === "error" || !product) {
-    return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Não foi possível carregar este produto.
-      </p>
-    );
+    return <ErrorState message="Não foi possível carregar este produto." />;
   }
+
+  const skuSubtitle =
+    product.variants.length === 1
+      ? `SKU ${product.variants[0].sku}`
+      : `${product.variants.length} variantes`;
 
   return (
     <div className="flex flex-col">
-      <AdminDetailHeader
+      <DetailHeader
         backHref="/admin/products"
         backLabel="Voltar para produtos"
         title={product.name}
-        subtitle={`SKU ${product.sku}`}
+        subtitle={skuSubtitle}
         isDirty={isDirty}
         onSaveAndLeave={() => formRef.current?.save() ?? Promise.resolve(false)}
         meta={
@@ -115,13 +100,18 @@ export default function EditProductPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
-          <ProductForm
+          <ProductBasicInfoForm
             ref={formRef}
             product={product}
             formId={FORM_ID}
             onSubmit={handleSubmit}
             onSavingChange={setIsSaving}
             onDirtyChange={setIsDirty}
+          />
+          <ProductVariantManager
+            productId={product.id}
+            variants={product.variants}
+            onChange={handleVariantsChange}
           />
         </div>
 
@@ -130,11 +120,6 @@ export default function EditProductPage() {
             productId={product.id}
             images={product.images}
             onChange={handleImagesChange}
-          />
-          <StockActionsPanel
-            productId={product.id}
-            stockQuantity={product.stock_quantity}
-            onStockChange={handleStockChange}
           />
         </div>
       </div>

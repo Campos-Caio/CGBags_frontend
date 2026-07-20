@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 
-import { AdminGuard } from "@/components/admin/AdminGuard";
-import { AdminShell } from "@/components/admin/AdminShell";
+import { AdminGuard } from "@/components/admin/layout/AdminGuard";
+import { AdminShell } from "@/components/admin/layout/AdminShell";
 import { AdminProviders } from "./providers";
 
 const geistSans = Geist({
