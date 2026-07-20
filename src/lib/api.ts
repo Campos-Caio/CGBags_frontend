@@ -2,8 +2,28 @@ import axios, { type InternalAxiosRequestConfig } from "axios";
 
 import { getAccessToken, setAccessToken } from "@/lib/token";
 
+// NEXT_PUBLIC_API_URL pode ser um caminho relativo (ex.: "/api", atras de um
+// reverse proxy no mesmo dominio) — o navegador resolve isso contra a propria
+// pagina sem problema. Mas Server Components rodam no processo Node, sem
+// "pagina atual" nenhuma pra resolver um path relativo contra: precisam de
+// uma URL absoluta. Nesse caso, cai pra INTERNAL_API_URL (chamada direta ao
+// backend, sem passar pelo proxy publico) ou por ultimo http://localhost:8000.
+function resolveBaseURL(): string | undefined {
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  if (typeof window !== "undefined") {
+    return publicUrl;
+  }
+
+  if (publicUrl && /^https?:\/\//.test(publicUrl)) {
+    return publicUrl;
+  }
+
+  return process.env.INTERNAL_API_URL ?? "http://localhost:8000";
+}
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: resolveBaseURL(),
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
