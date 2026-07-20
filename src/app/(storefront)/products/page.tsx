@@ -12,6 +12,12 @@ export const metadata: Metadata = {
     "Conheça o catálogo completo de produtos da CG Bags, fabricados para o agronegócio.",
 };
 
+// Catalogo muda por acao do admin (produto novo, estoque, ativacao) e precisa
+// refletir isso na hora — sem isto, o Next trata a pagina como estatica (sem
+// nenhuma API dinamica usada) e congela o resultado de listProducts() no
+// HTML gerado em build time, nunca mais buscando de novo.
+export const dynamic = "force-dynamic";
+
 async function getProducts(): Promise<Product[]> {
   try {
     return await listProducts();
