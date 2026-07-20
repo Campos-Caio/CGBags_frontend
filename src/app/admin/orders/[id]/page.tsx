@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { DetailHeader } from "@/components/admin/layout/DetailHeader";
 import { ErrorState } from "@/components/admin/feedback/ErrorState";
 import { LoadingState } from "@/components/admin/feedback/LoadingState";
+import { AdminShipmentCard } from "@/components/admin/orders/AdminShipmentCard";
 import { OrderStatusControl } from "@/components/admin/orders/OrderStatusControl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefinitionRow } from "@/components/ui/definition-row";
@@ -119,6 +120,8 @@ export default function AdminOrderDetailPage() {
               <p className="text-sm text-muted-foreground">{address}</p>
             </CardContent>
           </Card>
+
+          <AdminShipmentCard orderId={order.id} orderStatus={order.status} />
         </div>
       </div>
     </div>

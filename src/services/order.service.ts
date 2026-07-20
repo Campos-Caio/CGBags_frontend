@@ -2,6 +2,7 @@ import axios from "axios";
 
 import { api } from "@/lib/api";
 import type { Order, OrderStatus } from "@/types/order";
+import type { OrderTracking } from "@/types/tracking";
 
 export async function listMyOrders(): Promise<Order[]> {
   const response = await api.get<Order[]>("/orders/");
@@ -67,6 +68,11 @@ export async function payOrderPix(orderId: number): Promise<PixCharge> {
 
 export async function getPixChargeStatus(orderId: number): Promise<PixCharge> {
   const response = await api.get<PixCharge>(`/orders/${orderId}/pay/pix/status`);
+  return response.data;
+}
+
+export async function getOrderTracking(orderId: number): Promise<OrderTracking> {
+  const response = await api.get<OrderTracking>(`/orders/${orderId}/tracking`);
   return response.data;
 }
 

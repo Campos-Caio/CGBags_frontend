@@ -8,6 +8,12 @@ export interface RecentOrder {
   created_at: string;
 }
 
+export interface MelhorEnvioBalance {
+  balance: string;
+  reserved: string;
+  debts: string;
+}
+
 export interface AdminDashboard {
   total_users: number;
   total_customers: number;
