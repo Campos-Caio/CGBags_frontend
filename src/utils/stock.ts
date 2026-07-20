@@ -1,3 +1,5 @@
+import type { BadgeVariant } from "@/components/ui/badge";
+
 const LOW_STOCK_THRESHOLD = 5;
 
 export type StockStatus = "in-stock" | "low-stock" | "out-of-stock";
@@ -14,8 +16,8 @@ export const STOCK_STATUS_LABEL: Record<StockStatus, string> = {
   "out-of-stock": "Indisponível",
 };
 
-export const STOCK_STATUS_BADGE_CLASS: Record<StockStatus, string> = {
-  "in-stock": "bg-secondary text-secondary-foreground",
-  "low-stock": "bg-accent text-accent-foreground",
-  "out-of-stock": "bg-muted text-muted-foreground",
+export const STOCK_STATUS_BADGE_VARIANT: Record<StockStatus, BadgeVariant> = {
+  "in-stock": "success",
+  "low-stock": "warning",
+  "out-of-stock": "destructive",
 };

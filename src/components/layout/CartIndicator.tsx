@@ -10,11 +10,17 @@ function CartIndicator() {
   const { itemCount } = useCart();
 
   return (
-    <Button variant="ghost" size="icon-lg" aria-label="Carrinho" asChild className="relative">
+    <Button
+      variant="ghost"
+      size="icon-lg"
+      aria-label="Carrinho"
+      asChild
+      className="relative bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
+    >
       <Link href="/cart">
         <ShoppingCart className="size-5" />
         {itemCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-foreground text-[10px] font-medium text-background">
+          <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
             {itemCount}
           </span>
         )}

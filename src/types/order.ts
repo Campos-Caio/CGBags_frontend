@@ -10,7 +10,9 @@ export type OrderStatus =
 export interface OrderItem {
   id: number;
   product_id: number;
+  variant_id: number;
   product_name: string;
+  variant_label: string | null;
   sku: string;
   unit_price: string;
   quantity: number;
@@ -35,10 +37,12 @@ export interface Order {
   shipping_neighborhood: string;
   shipping_city: string;
   shipping_state: string;
+  shipping_method: string | null;
 
   subtotal: string;
   shipping_cost: string;
   discount: string;
+  coupon_code: string | null;
   total: string;
 
   status: OrderStatus;

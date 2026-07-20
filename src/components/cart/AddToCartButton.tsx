@@ -10,11 +10,11 @@ import { useCart } from "@/context/CartContext";
 import { getApiErrorMessage } from "@/utils/apiError";
 
 interface AddToCartButtonProps {
-  productId: number;
+  variantId: number;
   disabled?: boolean;
 }
 
-function AddToCartButton({ productId, disabled = false }: AddToCartButtonProps) {
+function AddToCartButton({ variantId, disabled = false }: AddToCartButtonProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { addItem, needsCustomerProfile } = useCart();
@@ -33,7 +33,7 @@ function AddToCartButton({ productId, disabled = false }: AddToCartButtonProps) 
 
     setIsSubmitting(true);
     try {
-      await addItem(productId, 1);
+      await addItem(variantId, 1);
       toast.success("Produto adicionado ao carrinho.");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Não foi possível adicionar o produto ao carrinho."));

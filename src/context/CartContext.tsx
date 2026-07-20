@@ -19,7 +19,7 @@ interface CartContextValue {
   itemCount: number;
   isLoading: boolean;
   needsCustomerProfile: boolean;
-  addItem: (productId: number, quantity?: number) => Promise<void>;
+  addItem: (variantId: number, quantity?: number) => Promise<void>;
   updateItem: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
   refetch: () => void;
@@ -71,8 +71,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated, refreshToken]);
 
-  const addItem = useCallback(async (productId: number, quantity: number = 1) => {
-    const updated = await cartService.addCartItem(productId, quantity);
+  const addItem = useCallback(async (variantId: number, quantity: number = 1) => {
+    const updated = await cartService.addCartItem(variantId, quantity);
     setCart(updated);
     setNeedsCustomerProfile(false);
   }, []);
