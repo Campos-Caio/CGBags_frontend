@@ -6,10 +6,10 @@ import type {
   StockMovementType,
   StockRemoveInput,
 } from "@/types/stock";
-import type { Product } from "@/types/product";
+import type { ProductVariant } from "@/types/product";
 
 export interface ListMovementsParams {
-  product_id?: number;
+  variant_id?: number;
   movement_type?: StockMovementType;
   skip?: number;
   limit?: number;
@@ -20,28 +20,28 @@ export async function listMovements(params?: ListMovementsParams): Promise<Stock
   return response.data;
 }
 
-export async function getLowStockProducts(): Promise<Product[]> {
-  const response = await api.get<Product[]>("/stock/low-stock");
+export async function getLowStockVariants(): Promise<ProductVariant[]> {
+  const response = await api.get<ProductVariant[]>("/stock/low-stock");
   return response.data;
 }
 
-export async function addStock(productId: number, data: StockAddInput): Promise<StockMovement> {
-  const response = await api.post<StockMovement>(`/products/${productId}/stock/add`, data);
+export async function addStock(variantId: number, data: StockAddInput): Promise<StockMovement> {
+  const response = await api.post<StockMovement>(`/variants/${variantId}/stock/add`, data);
   return response.data;
 }
 
 export async function removeStock(
-  productId: number,
+  variantId: number,
   data: StockRemoveInput
 ): Promise<StockMovement> {
-  const response = await api.post<StockMovement>(`/products/${productId}/stock/remove`, data);
+  const response = await api.post<StockMovement>(`/variants/${variantId}/stock/remove`, data);
   return response.data;
 }
 
 export async function adjustStock(
-  productId: number,
+  variantId: number,
   data: StockAdjustInput
 ): Promise<StockMovement> {
-  const response = await api.post<StockMovement>(`/products/${productId}/stock/adjust`, data);
+  const response = await api.post<StockMovement>(`/variants/${variantId}/stock/adjust`, data);
   return response.data;
 }

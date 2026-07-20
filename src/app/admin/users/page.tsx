@@ -2,10 +2,15 @@
 
 import { useState } from "react";
 
-import { AdminPagination } from "@/components/admin/AdminPagination";
+import { PageHeader } from "@/components/admin/layout/PageHeader";
+import { FilterBar } from "@/components/admin/data/FilterBar";
+import { TablePagination } from "@/components/admin/data/TablePagination";
 import { UsersTable } from "@/components/admin/users/UsersTable";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminList } from "@/hooks/useAdminList";
 import { listUsersAdmin } from "@/services/user.service";
@@ -37,58 +42,78 @@ export default function AdminUsersPage() {
     errorMessage: "Não foi possível carregar os usuários.",
   });
 
+  function clearFilters() {
+    setPage(0);
+    setSearch("");
+    setShowInactive(false);
+    setRoleFilter("");
+  }
+
+  const hasActiveFilters = search !== "" || showInactive || roleFilter !== "";
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-foreground">Usuários</h1>
+      <PageHeader title="Usuários" />
 
-      <Card>
-        <CardContent className="flex flex-wrap gap-4">
-          <Input
-            placeholder="Buscar por e-mail"
-            value={search}
-            onChange={(e) => {
+      <FilterBar
+        resultCount={users.length}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={clearFilters}
+      >
+        <Input
+          placeholder="Buscar por e-mail"
+          value={search}
+          onChange={(e) => {
+            setPage(0);
+            setSearch(e.target.value);
+          }}
+          className="max-w-xs"
+        />
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Checkbox
+            checked={showInactive}
+            onCheckedChange={(checked) => {
               setPage(0);
-              setSearch(e.target.value);
+              setShowInactive(checked === true);
             }}
-            className="max-w-xs"
           />
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(e) => {
-                setPage(0);
-                setShowInactive(e.target.checked);
-              }}
-            />
-            Ver somente inativos/excluídos
-          </label>
-          <select
-            value={roleFilter}
-            onChange={(e) => {
-              setPage(0);
-              setRoleFilter(e.target.value as "" | "admin" | "customer");
-            }}
-            className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          >
-            <option value="">Todos os papéis</option>
-            <option value="admin">Admins</option>
-            <option value="customer">Clientes</option>
-          </select>
-        </CardContent>
-      </Card>
+          Ver somente inativos/excluídos
+        </label>
+        <Select
+          value={roleFilter || "all"}
+          onValueChange={(value) => {
+            setPage(0);
+            setRoleFilter(value === "all" ? "" : (value as "admin" | "customer"));
+          }}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os papéis</SelectItem>
+            <SelectItem value="admin">Admins</SelectItem>
+            <SelectItem value="customer">Clientes</SelectItem>
+          </SelectContent>
+        </Select>
+      </FilterBar>
 
       <Card>
         <CardContent>
           {isLoading || !currentUser ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
+            <LoadingState />
           ) : (
-            <UsersTable users={users} currentUserId={currentUser.id} onUsersChange={setUsers} />
+            <UsersTable
+              users={users}
+              currentUserId={currentUser.id}
+              onUsersChange={setUsers}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+            />
           )}
         </CardContent>
       </Card>
 
-      <AdminPagination page={page} onPageChange={setPage} itemCount={users.length} pageSize={pageSize} />
+      <TablePagination page={page} onPageChange={setPage} itemCount={users.length} pageSize={pageSize} />
     </div>
   );
 }

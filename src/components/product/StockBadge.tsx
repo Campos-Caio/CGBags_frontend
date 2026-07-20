@@ -1,4 +1,5 @@
-import { getStockStatus, STOCK_STATUS_BADGE_CLASS, STOCK_STATUS_LABEL } from "@/utils/stock";
+import { Badge } from "@/components/ui/badge";
+import { getStockStatus, STOCK_STATUS_BADGE_VARIANT, STOCK_STATUS_LABEL } from "@/utils/stock";
 
 interface StockBadgeProps {
   stockQuantity: number;
@@ -7,13 +8,7 @@ interface StockBadgeProps {
 function StockBadge({ stockQuantity }: StockBadgeProps) {
   const status = getStockStatus(stockQuantity);
 
-  return (
-    <span
-      className={`w-fit rounded-full px-2.5 py-0.5 text-xs font-medium ${STOCK_STATUS_BADGE_CLASS[status]}`}
-    >
-      {STOCK_STATUS_LABEL[status]}
-    </span>
-  );
+  return <Badge variant={STOCK_STATUS_BADGE_VARIANT[status]}>{STOCK_STATUS_LABEL[status]}</Badge>;
 }
 
 export { StockBadge };

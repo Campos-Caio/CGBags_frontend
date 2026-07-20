@@ -10,14 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { DefinitionRow } from "@/components/ui/definition-row";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { listMyAddresses } from "@/services/address.service";
+import { validateCoupon } from "@/services/coupon.service";
 import { checkout } from "@/services/order.service";
 import { calculateFreight } from "@/services/shipping.service";
 import type { Address } from "@/types/address";
+import type { CouponPreview } from "@/types/coupon";
 import type { FreightOption } from "@/types/shipping";
 import { getApiErrorMessage } from "@/utils/apiError";
+import { formatCouponValue } from "@/utils/coupon";
 import { formatCurrency } from "@/utils/currency";
 
 function freightPrice(option: FreightOption): number {
@@ -46,6 +50,10 @@ export default function CheckoutPage() {
   const [selectedFreightId, setSelectedFreightId] = useState<number | null>(null);
   const [freightLoading, setFreightLoading] = useState(false);
   const [freightError, setFreightError] = useState<string | null>(null);
+
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponPreview | null>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Uma vez que o checkout e concluido com sucesso, o carrinho e limpo no
@@ -127,7 +135,30 @@ export default function CheckoutPage() {
   const activeSelectedFreightId = selectedAddress ? selectedFreightId : null;
   const selectedFreight = activeFreightOptions.find((o) => o.id === activeSelectedFreightId) ?? null;
   const cartTotal = Number(cart?.total ?? "0");
-  const grandTotal = cartTotal + (selectedFreight ? freightPrice(selectedFreight) : 0);
+  const discountAmount = appliedCoupon ? Number(appliedCoupon.discount_amount) : 0;
+  const grandTotal =
+    cartTotal + (selectedFreight ? freightPrice(selectedFreight) : 0) - discountAmount;
+
+  async function handleApplyCoupon() {
+    const code = couponCode.trim();
+    if (!code) return;
+
+    setIsApplyingCoupon(true);
+    try {
+      const preview = await validateCoupon(code);
+      setAppliedCoupon(preview);
+      toast.success("Cupom aplicado.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível aplicar este cupom."));
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setAppliedCoupon(null);
+    setCouponCode("");
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -135,7 +166,7 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
     try {
-      const order = await checkout(selectedAddressId, selectedFreightId);
+      const order = await checkout(selectedAddressId, selectedFreightId, appliedCoupon?.code);
       checkoutSucceededRef.current = true;
       refetchCart();
       router.push(`/checkout/payment/${order.id}`);
@@ -175,7 +206,53 @@ export default function CheckoutPage() {
                   <p className="font-medium text-foreground">{formatCurrency(item.subtotal)}</p>
                 </div>
               ))}
+
+              <div className="py-3">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        Cupom {appliedCoupon.code}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatCouponValue(appliedCoupon.discount_type, appliedCoupon.value)} de
+                        desconto
+                      </p>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={handleRemoveCoupon}>
+                      Remover
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Código do cupom"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleApplyCoupon();
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isApplyingCoupon || !couponCode.trim()}
+                      onClick={handleApplyCoupon}
+                    >
+                      {isApplyingCoupon ? "Aplicando..." : "Aplicar"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <DefinitionRow label="Subtotal" value={formatCurrency(cartTotal)} />
+              {appliedCoupon && (
+                <DefinitionRow label="Desconto" value={`- ${formatCurrency(discountAmount)}`} />
+              )}
               <DefinitionRow
                 label="Frete"
                 value={selectedFreight ? formatCurrency(freightPrice(selectedFreight)) : "—"}

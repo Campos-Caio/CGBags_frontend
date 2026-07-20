@@ -3,7 +3,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CreditCard, Lock } from "lucide-react";
+import { ArrowLeft, CreditCard, Landmark, Lock, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,13 +11,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { DefinitionRow } from "@/components/ui/definition-row";
 import { Input } from "@/components/ui/input";
+import { PixPaymentPanel } from "@/components/order/PixPaymentPanel";
 import { useAuth } from "@/context/AuthContext";
-import { getMyOrderById, payOrder } from "@/services/order.service";
+import { getMyOrderById, payOrder, type CardPaymentMethod } from "@/services/order.service";
 import type { Order } from "@/types/order";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { formatCurrency } from "@/utils/currency";
 
 type PageStatus = "loading" | "ready" | "error";
+type PaymentMethod = CardPaymentMethod | "PIX";
+type Step = "select" | "pay";
+
+const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  CREDIT_CARD: "Crédito",
+  DEBIT_CARD: "Débito",
+  PIX: "Pix",
+};
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const currentYear = new Date().getFullYear();
@@ -35,6 +44,14 @@ export default function PaymentPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [pageStatus, setPageStatus] = useState<PageStatus>("loading");
+
+  // Escolher a forma de pagamento e' so' uma preferencia — nao pode ter
+  // efeito colateral (gerar QR Pix, por exemplo) antes do cliente confirmar
+  // explicitamente com "Continuar". Sem essa etapa, so' clicar no card do
+  // Pix (mesmo sem querer, so pra comparar as opcoes) ja consumia uma
+  // tentativa de pagamento e gerava uma cobranca real no gateway.
+  const [step, setStep] = useState<Step>("select");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CREDIT_CARD");
 
   const [cardholderName, setCardholderName] = useState("");
   const [cardNumberDisplay, setCardNumberDisplay] = useState("");
@@ -93,9 +110,16 @@ export default function PaymentPage() {
     setCardNumberDisplay(maskCardNumber(digits));
   }
 
-  async function handleSubmit(event: FormEvent) {
+  function handlePaymentMethodChange(method: PaymentMethod) {
+    setPaymentMethod(method);
+    // Debito nao tem parcelamento — evita deixar um valor > 1 "escondido"
+    // de uma selecao anterior em credito.
+    if (method === "DEBIT_CARD") setInstallments(1);
+  }
+
+  async function handleCardSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!order) return;
+    if (!order || paymentMethod === "PIX") return;
 
     setIsSubmitting(true);
     try {
@@ -105,7 +129,8 @@ export default function PaymentPage() {
         expiration_month: parseInt(expiryMonth),
         expiration_year: parseInt(expiryYear),
         security_code: cvv,
-        installments,
+        installments: paymentMethod === "DEBIT_CARD" ? 1 : installments,
+        payment_method: paymentMethod,
       });
       toast.success("Pagamento aprovado! Seu pedido está confirmado.");
       router.push(`/account/orders/${order.id}`);
@@ -142,6 +167,12 @@ export default function PaymentPage() {
         )
       );
     }
+  }
+
+  function handlePixApproved() {
+    if (!order) return;
+    toast.success("Pagamento aprovado! Seu pedido está confirmado.");
+    router.push(`/account/orders/${order.id}`);
   }
 
   if (authLoading || !isAuthenticated || pageStatus === "loading") {
@@ -224,127 +255,193 @@ export default function PaymentPage() {
             </CardContent>
           </Card>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="size-4" aria-hidden />
-                  Dados do cartão
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="cardholderName" className="text-sm font-medium text-foreground">
-                    Nome no cartão
-                  </label>
-                  <Input
-                    id="cardholderName"
-                    autoComplete="cc-name"
-                    placeholder="Como aparece no cartão"
-                    required
-                    value={cardholderName}
-                    onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
-                  />
-                </div>
+          {step === "select" ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Forma de pagamento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(
+                      [
+                        { value: "CREDIT_CARD", label: "Crédito", Icon: CreditCard },
+                        { value: "DEBIT_CARD", label: "Débito", Icon: Landmark },
+                        { value: "PIX", label: "Pix", Icon: QrCode },
+                      ] as const
+                    ).map(({ value, label, Icon }) => (
+                      <label
+                        key={value}
+                        className={`flex cursor-pointer flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors ${
+                          paymentMethod === value
+                            ? "border-ring bg-muted/30"
+                            : "border-border hover:bg-muted/20"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={value}
+                          checked={paymentMethod === value}
+                          onChange={() => handlePaymentMethodChange(value)}
+                          className="sr-only"
+                        />
+                        <Icon className="size-5 text-foreground" aria-hidden />
+                        <span className="text-sm font-medium text-foreground">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="cardNumber" className="text-sm font-medium text-foreground">
-                    Número do cartão
-                  </label>
-                  <Input
-                    id="cardNumber"
-                    autoComplete="cc-number"
-                    inputMode="numeric"
-                    placeholder="0000 0000 0000 0000"
-                    required
-                    value={cardNumberDisplay}
-                    onChange={handleCardNumberChange}
-                  />
-                </div>
+              <Button type="button" size="lg" onClick={() => setStep("pay")}>
+                Continuar
+              </Button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => setStep("select")}
+                className="inline-flex items-center gap-1.5 self-start text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ArrowLeft className="size-3.5" aria-hidden />
+                Trocar forma de pagamento ({PAYMENT_METHOD_LABEL[paymentMethod]})
+              </button>
 
-                <div className="grid grid-cols-2 gap-4">
+              {paymentMethod === "PIX" ? (
+                <PixPaymentPanel orderId={order.id} onApproved={handlePixApproved} />
+              ) : (
+                <form onSubmit={handleCardSubmit} className="flex flex-col gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {paymentMethod === "DEBIT_CARD" ? (
+                      <Landmark className="size-4" aria-hidden />
+                    ) : (
+                      <CreditCard className="size-4" aria-hidden />
+                    )}
+                    Dados do cartão {paymentMethod === "DEBIT_CARD" ? "de débito" : "de crédito"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <span className="text-sm font-medium text-foreground">Validade</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        aria-label="Mês de validade"
+                    <label htmlFor="cardholderName" className="text-sm font-medium text-foreground">
+                      Nome no cartão
+                    </label>
+                    <Input
+                      id="cardholderName"
+                      autoComplete="cc-name"
+                      placeholder="Como aparece no cartão"
+                      required
+                      value={cardholderName}
+                      onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cardNumber" className="text-sm font-medium text-foreground">
+                      Número do cartão
+                    </label>
+                    <Input
+                      id="cardNumber"
+                      autoComplete="cc-number"
+                      inputMode="numeric"
+                      placeholder="0000 0000 0000 0000"
+                      required
+                      value={cardNumberDisplay}
+                      onChange={handleCardNumberChange}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-sm font-medium text-foreground">Validade</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          aria-label="Mês de validade"
+                          required
+                          value={expiryMonth}
+                          onChange={(e) => setExpiryMonth(e.target.value)}
+                          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                          <option value="" disabled>MM</option>
+                          {MONTHS.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="Ano de validade"
+                          required
+                          value={expiryYear}
+                          onChange={(e) => setExpiryYear(e.target.value)}
+                          className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        >
+                          <option value="" disabled>AAAA</option>
+                          {YEARS.map((y) => (
+                            <option key={y} value={y}>{y}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="cvv" className="text-sm font-medium text-foreground">
+                        CVV
+                      </label>
+                      <Input
+                        id="cvv"
+                        autoComplete="cc-csc"
+                        inputMode="numeric"
+                        placeholder="123"
                         required
-                        value={expiryMonth}
-                        onChange={(e) => setExpiryMonth(e.target.value)}
-                        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                      >
-                        <option value="" disabled>MM</option>
-                        {MONTHS.map((m) => (
-                          <option key={m} value={m}>{m}</option>
-                        ))}
-                      </select>
-                      <select
-                        aria-label="Ano de validade"
-                        required
-                        value={expiryYear}
-                        onChange={(e) => setExpiryYear(e.target.value)}
-                        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                      >
-                        <option value="" disabled>AAAA</option>
-                        {YEARS.map((y) => (
-                          <option key={y} value={y}>{y}</option>
-                        ))}
-                      </select>
+                        minLength={3}
+                        maxLength={4}
+                        value={cvv}
+                        onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      />
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="cvv" className="text-sm font-medium text-foreground">
-                      CVV
-                    </label>
-                    <Input
-                      id="cvv"
-                      autoComplete="cc-csc"
-                      inputMode="numeric"
-                      placeholder="123"
-                      required
-                      minLength={3}
-                      maxLength={4}
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    />
-                  </div>
-                </div>
+                  {paymentMethod === "CREDIT_CARD" && (
+                    <div className="flex flex-col gap-1.5">
+                      <label htmlFor="installments" className="text-sm font-medium text-foreground">
+                        Parcelas
+                      </label>
+                      <select
+                        id="installments"
+                        value={installments}
+                        onChange={(e) => setInstallments(Number(e.target.value))}
+                        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        {INSTALLMENTS.map((n) => (
+                          <option key={n} value={n}>
+                            {n}× de {formatCurrency(Number(order.total) / n)} sem juros
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor="installments" className="text-sm font-medium text-foreground">
-                    Parcelas
-                  </label>
-                  <select
-                    id="installments"
-                    value={installments}
-                    onChange={(e) => setInstallments(Number(e.target.value))}
-                    className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    {INSTALLMENTS.map((n) => (
-                      <option key={n} value={n}>
-                        {n}× de {formatCurrency(Number(order.total) / n)} sem juros
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex flex-col gap-3">
-              <Button type="submit" size="lg" disabled={isSubmitting}>
-                {isSubmitting
-                  ? "Processando pagamento..."
-                  : installments > 1
-                    ? `Pagar ${installments}× de ${formatCurrency(totalPerInstallment)}`
-                    : `Pagar ${formatCurrency(order.total)}`}
-              </Button>
-              <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                <Lock className="size-3" aria-hidden />
-                Pagamento seguro via e.Rede
-              </p>
-            </div>
-          </form>
+              <div className="flex flex-col gap-3">
+                <Button type="submit" size="lg" disabled={isSubmitting}>
+                  {isSubmitting
+                    ? "Processando pagamento..."
+                    : paymentMethod === "CREDIT_CARD" && installments > 1
+                      ? `Pagar ${installments}× de ${formatCurrency(totalPerInstallment)}`
+                      : `Pagar ${formatCurrency(order.total)}`}
+                </Button>
+                <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                  <Lock className="size-3" aria-hidden />
+                  Pagamento seguro via e.Rede
+                </p>
+              </div>
+                </form>
+              )}
+            </>
+          )}
         </div>
       </div>
     </Container>

@@ -9,17 +9,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Product } from "@/types/product";
+import type { Product, ProductVariant } from "@/types/product";
 
 interface LowStockTableProps {
+  variants: ProductVariant[];
   products: Product[];
 }
 
-export function LowStockTable({ products }: LowStockTableProps) {
-  if (products.length === 0) {
+export function LowStockTable({ variants, products }: LowStockTableProps) {
+  function productName(productId: number): string {
+    return products.find((p) => p.id === productId)?.name ?? "-";
+  }
+
+  if (variants.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        Nenhum produto com estoque baixo.
+        Nenhuma variante com estoque baixo.
       </p>
     );
   }
@@ -36,19 +41,26 @@ export function LowStockTable({ products }: LowStockTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {products.map((product) => (
-          <TableRow key={product.id}>
-            <TableCell className="font-medium text-foreground">{product.name}</TableCell>
-            <TableCell className="text-muted-foreground">{product.sku}</TableCell>
+        {variants.map((variant) => (
+          <TableRow key={variant.id}>
+            <TableCell className="font-medium text-foreground">
+              {productName(variant.product_id)}
+              {variant.label && (
+                <span className="block text-xs font-normal text-muted-foreground">
+                  {variant.label}
+                </span>
+              )}
+            </TableCell>
+            <TableCell className="text-muted-foreground">{variant.sku}</TableCell>
             <TableCell>
               <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                {product.stock_quantity}
+                {variant.stock_quantity}
               </span>
             </TableCell>
-            <TableCell className="text-muted-foreground">{product.stock_minimum}</TableCell>
+            <TableCell className="text-muted-foreground">{variant.stock_minimum}</TableCell>
             <TableCell>
               <Button variant="outline" size="sm" asChild>
-                <Link href={`/admin/products/${product.id}`}>Adicionar estoque</Link>
+                <Link href={`/admin/products/${variant.product_id}`}>Adicionar estoque</Link>
               </Button>
             </TableCell>
           </TableRow>

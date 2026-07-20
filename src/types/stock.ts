@@ -4,6 +4,8 @@ export interface StockMovement {
   id: number;
   product_id: number;
   product_name: string;
+  variant_id: number;
+  variant_label: string | null;
   sku: string;
   movement_type: StockMovementType;
   quantity: number;

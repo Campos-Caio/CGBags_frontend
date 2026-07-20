@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
 
-interface AdminPaginationProps {
+interface TablePaginationProps {
   page: number;
   onPageChange: (page: number) => void;
   itemCount: number;
   pageSize: number;
 }
 
-/** Par de botões "Anterior/Próxima" repetido em toda listagem admin — paginação por "página cheia" (sem contagem total do backend). */
-export function AdminPagination({ page, onPageChange, itemCount, pageSize }: AdminPaginationProps) {
+/** Par de botões "Anterior/Próxima" — paginação por "página cheia" (sem contagem total do backend). */
+export function TablePagination({ page, onPageChange, itemCount, pageSize }: TablePaginationProps) {
   return (
     <div className="flex justify-end gap-2">
       <Button

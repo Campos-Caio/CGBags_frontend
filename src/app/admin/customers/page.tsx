@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 
-import { AdminPagination } from "@/components/admin/AdminPagination";
+import { PageHeader } from "@/components/admin/layout/PageHeader";
+import { FilterBar } from "@/components/admin/data/FilterBar";
+import { TablePagination } from "@/components/admin/data/TablePagination";
 import { CustomersTable } from "@/components/admin/customers/CustomersTable";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useAdminList } from "@/hooks/useAdminList";
 import { listCustomersAdmin } from "@/services/customer.service";
@@ -33,46 +37,60 @@ export default function AdminCustomersPage() {
     errorMessage: "Não foi possível carregar os clientes.",
   });
 
+  function clearFilters() {
+    setPage(0);
+    setSearch("");
+    setShowInactive(false);
+  }
+
+  const hasActiveFilters = search !== "" || showInactive;
+
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-foreground">Clientes</h1>
+      <PageHeader title="Clientes" />
 
-      <Card>
-        <CardContent className="flex flex-wrap gap-4">
-          <Input
-            placeholder="Buscar por nome ou CPF/CNPJ"
-            value={search}
-            onChange={(e) => {
+      <FilterBar
+        resultCount={customers.length}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={clearFilters}
+      >
+        <Input
+          placeholder="Buscar por nome ou CPF/CNPJ"
+          value={search}
+          onChange={(e) => {
+            setPage(0);
+            setSearch(e.target.value);
+          }}
+          className="max-w-xs"
+        />
+        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Checkbox
+            checked={showInactive}
+            onCheckedChange={(checked) => {
               setPage(0);
-              setSearch(e.target.value);
+              setShowInactive(checked === true);
             }}
-            className="max-w-xs"
           />
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={showInactive}
-              onChange={(e) => {
-                setPage(0);
-                setShowInactive(e.target.checked);
-              }}
-            />
-            Ver somente inativos/excluídos
-          </label>
-        </CardContent>
-      </Card>
+          Ver somente inativos/excluídos
+        </label>
+      </FilterBar>
 
       <Card>
         <CardContent>
           {isLoading ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
+            <LoadingState />
           ) : (
-            <CustomersTable customers={customers} onCustomersChange={setCustomers} />
+            <CustomersTable
+              customers={customers}
+              onCustomersChange={setCustomers}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={clearFilters}
+            />
           )}
         </CardContent>
       </Card>
 
-      <AdminPagination page={page} onPageChange={setPage} itemCount={customers.length} pageSize={pageSize} />
+      <TablePagination page={page} onPageChange={setPage} itemCount={customers.length} pageSize={pageSize} />
     </div>
   );
 }

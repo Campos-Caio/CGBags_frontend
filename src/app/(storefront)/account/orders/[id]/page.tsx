@@ -11,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { DefinitionRow } from "@/components/ui/definition-row";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
+import { OrderTrackingTimeline } from "@/components/order/OrderTrackingTimeline";
 import { useAuth } from "@/context/AuthContext";
-import { cancelOrder, getMyOrderById } from "@/services/order.service";
+import { cancelOrder, getMyOrderById, getOrderTracking } from "@/services/order.service";
 import type { Order, OrderStatus } from "@/types/order";
+import type { OrderTracking } from "@/types/tracking";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { confirmToast } from "@/utils/confirmToast";
 import { formatCurrency } from "@/utils/currency";
@@ -31,6 +33,7 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [status, setStatus] = useState<PageStatus>("loading");
   const [isCancelling, setIsCancelling] = useState(false);
+  const [tracking, setTracking] = useState<OrderTracking | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -70,6 +73,25 @@ export default function OrderDetailPage() {
       cancelled = true;
     };
   }, [isAuthenticated, params.id]);
+
+  useEffect(() => {
+    if (!order) return;
+
+    let cancelled = false;
+
+    // Informativo — se falhar, o resto da tela do pedido continua util sem
+    // o rastreio, entao nao mostra toast nem bloqueia nada.
+    getOrderTracking(order.id)
+      .then((data) => {
+        if (!cancelled) setTracking(data);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- so' refaz pelo id, nao pela identidade do objeto Order inteiro
+  }, [order?.id]);
 
   function handleCancel() {
     if (!order) return;
@@ -208,7 +230,7 @@ export default function OrderDetailPage() {
               {Number(order.discount) > 0 && (
                 <DefinitionRow
                   size="lg"
-                  label="Desconto"
+                  label={order.coupon_code ? `Desconto (${order.coupon_code})` : "Desconto"}
                   value={`- ${formatCurrency(order.discount)}`}
                 />
               )}
@@ -224,6 +246,8 @@ export default function OrderDetailPage() {
               <p className="text-sm text-muted-foreground">{address}</p>
             </CardContent>
           </Card>
+
+          {tracking && <OrderTrackingTimeline tracking={tracking} />}
         </div>
       </div>
     </Container>

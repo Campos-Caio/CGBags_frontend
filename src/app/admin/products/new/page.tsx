@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { AdminDetailHeader } from "@/components/admin/AdminDetailHeader";
+import { DetailHeader } from "@/components/admin/layout/DetailHeader";
 import { ProductForm } from "@/components/admin/products/ProductForm";
 import { Button } from "@/components/ui/button";
 import { createProduct } from "@/services/product.service";
@@ -24,7 +24,7 @@ export default function NewProductPage() {
 
   return (
     <div className="flex flex-col">
-      <AdminDetailHeader
+      <DetailHeader
         backHref="/admin/products"
         backLabel="Voltar para produtos"
         title="Novo produto"
@@ -35,9 +35,7 @@ export default function NewProductPage() {
         }
       />
 
-      <div className="max-w-2xl">
-        <ProductForm formId={FORM_ID} onSubmit={handleSubmit} onSavingChange={setIsSaving} />
-      </div>
+      <ProductForm formId={FORM_ID} onSubmit={handleSubmit} onSavingChange={setIsSaving} />
     </div>
   );
 }

@@ -1,21 +1,24 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
-import { AdminDetailHeader } from "@/components/admin/AdminDetailHeader";
-import { StatusToggle } from "@/components/admin/StatusToggle";
+import { DetailHeader } from "@/components/admin/layout/DetailHeader";
 import { CustomerAddressesCard } from "@/components/admin/customers/CustomerAddressesCard";
+import { ErrorState } from "@/components/admin/feedback/ErrorState";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
+import { StatusToggle } from "@/components/admin/feedback/StatusToggle";
 import { UserRoleToggle } from "@/components/admin/users/UserRoleToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefinitionRow } from "@/components/ui/definition-row";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
+import { useAdminResource } from "@/hooks/useAdminResource";
 import { getCustomerByIdAdmin, updateCustomerAdmin } from "@/services/customer.service";
 import type { Address } from "@/types/address";
-import type { Customer, PersonType } from "@/types/customer";
+import type { PersonType } from "@/types/customer";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { formatDate } from "@/utils/date";
 
@@ -26,15 +29,16 @@ const PERSON_TYPE_LABEL: Record<PersonType, string> = {
 
 const FORM_ID = "customer-edit-form";
 
-type PageStatus = "loading" | "ready" | "error";
-
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const { user: currentUser } = useAuth();
   const customerId = Number(params.id);
 
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [status, setStatus] = useState<PageStatus>("loading");
+  const { data: customer, setData: setCustomer, status } = useAdminResource({
+    fetch: () => getCustomerByIdAdmin(customerId),
+    deps: [customerId],
+    errorMessage: "Não foi possível carregar este cliente.",
+  });
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -42,33 +46,15 @@ export default function CustomerDetailPage() {
   const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    getCustomerByIdAdmin(customerId)
-      .then((data) => {
-        if (cancelled) return;
-        if (data === null) {
-          setStatus("error");
-          return;
-        }
-        setCustomer(data);
-        setFullName(data.full_name);
-        setPhone(data.phone);
-        setBirthDate(data.birth_date?.slice(0, 10) ?? "");
-        setIsActive(data.is_active);
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setStatus("error");
-        toast.error(getApiErrorMessage(error, "Não foi possível carregar este cliente."));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [customerId]);
+  // Resincroniza o formulario sempre que um cliente (novo ou diferente) carrega.
+  const [syncedCustomerId, setSyncedCustomerId] = useState<number | null>(null);
+  if (customer && customer.id !== syncedCustomerId) {
+    setSyncedCustomerId(customer.id);
+    setFullName(customer.full_name);
+    setPhone(customer.phone);
+    setBirthDate(customer.birth_date?.slice(0, 10) ?? "");
+    setIsActive(customer.is_active);
+  }
 
   async function saveCustomer(): Promise<boolean> {
     setIsSaving(true);
@@ -96,32 +82,27 @@ export default function CustomerDetailPage() {
     await saveCustomer();
   }
 
-  const isDirty =
-    customer !== null &&
-    (fullName !== customer.full_name ||
-      phone !== customer.phone ||
-      birthDate !== (customer.birth_date?.slice(0, 10) ?? "") ||
-      isActive !== customer.is_active);
-
   function handleAddressesChange(addresses: Address[]) {
     setCustomer((prev) => (prev ? { ...prev, addresses } : prev));
   }
 
   if (status === "loading") {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
+    return <LoadingState />;
   }
 
   if (status === "error" || !customer) {
-    return (
-      <p className="py-8 text-center text-sm text-muted-foreground">
-        Não foi possível carregar este cliente.
-      </p>
-    );
+    return <ErrorState message="Não foi possível carregar este cliente." />;
   }
+
+  const isDirty =
+    fullName !== customer.full_name ||
+    phone !== customer.phone ||
+    birthDate !== (customer.birth_date?.slice(0, 10) ?? "") ||
+    isActive !== customer.is_active;
 
   return (
     <div className="flex flex-col">
-      <AdminDetailHeader
+      <DetailHeader
         backHref="/admin/customers"
         backLabel="Voltar para clientes"
         title={customer.full_name}

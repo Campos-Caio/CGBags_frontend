@@ -1,71 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
 
-import { AdminDetailHeader } from "@/components/admin/AdminDetailHeader";
+import { DetailHeader } from "@/components/admin/layout/DetailHeader";
+import { ErrorState } from "@/components/admin/feedback/ErrorState";
+import { LoadingState } from "@/components/admin/feedback/LoadingState";
+import { AdminShipmentCard } from "@/components/admin/orders/AdminShipmentCard";
 import { OrderStatusControl } from "@/components/admin/orders/OrderStatusControl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefinitionRow } from "@/components/ui/definition-row";
+import { useAdminResource } from "@/hooks/useAdminResource";
 import { getOrderByIdAdmin } from "@/services/order.service";
-import type { Order } from "@/types/order";
-import { getApiErrorMessage } from "@/utils/apiError";
 import { formatCurrency } from "@/utils/currency";
 import { formatDateTime } from "@/utils/date";
-
-type PageStatus = "loading" | "ready" | "error";
 
 export default function AdminOrderDetailPage() {
   const params = useParams<{ id: string }>();
   const orderId = Number(params.id);
 
-  const [order, setOrder] = useState<Order | null>(null);
-  const [status, setStatus] = useState<PageStatus>("loading");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    getOrderByIdAdmin(orderId)
-      .then((data) => {
-        if (cancelled) return;
-        if (data === null) {
-          setStatus("error");
-          return;
-        }
-        setOrder(data);
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setStatus("error");
-        toast.error(getApiErrorMessage(error, "Não foi possível carregar este pedido."));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [orderId]);
+  const { data: order, setData: setOrder, status } = useAdminResource({
+    fetch: () => getOrderByIdAdmin(orderId),
+    deps: [orderId],
+    errorMessage: "Não foi possível carregar este pedido.",
+  });
 
   if (status === "loading") {
-    return <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>;
+    return <LoadingState />;
   }
 
   if (status === "error" || !order) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-sm text-muted-foreground">Pedido não encontrado.</p>
-        <Link
-          href="/admin/orders"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:underline"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          Voltar para pedidos
-        </Link>
-      </div>
-    );
+    return <ErrorState message="Pedido não encontrado." />;
   }
 
   const address = [
@@ -80,7 +44,7 @@ export default function AdminOrderDetailPage() {
 
   return (
     <div className="flex flex-col">
-      <AdminDetailHeader
+      <DetailHeader
         backHref="/admin/orders"
         backLabel="Voltar para pedidos"
         title={`Pedido #${order.id}`}
@@ -98,7 +62,10 @@ export default function AdminOrderDetailPage() {
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between gap-4 py-3">
                   <div>
-                    <p className="font-medium text-foreground">{item.product_name}</p>
+                    <p className="font-medium text-foreground">
+                      {item.product_name}
+                      {item.variant_label ? ` — ${item.variant_label}` : ""}
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {item.sku} · {item.quantity} × {formatCurrency(item.unit_price)}
                     </p>
@@ -123,7 +90,7 @@ export default function AdminOrderDetailPage() {
               {Number(order.discount) > 0 && (
                 <DefinitionRow
                   size="lg"
-                  label="Desconto"
+                  label={order.coupon_code ? `Desconto (${order.coupon_code})` : "Desconto"}
                   value={`- ${formatCurrency(order.discount)}`}
                 />
               )}
@@ -153,6 +120,8 @@ export default function AdminOrderDetailPage() {
               <p className="text-sm text-muted-foreground">{address}</p>
             </CardContent>
           </Card>
+
+          <AdminShipmentCard orderId={order.id} orderStatus={order.status} />
         </div>
       </div>
     </div>

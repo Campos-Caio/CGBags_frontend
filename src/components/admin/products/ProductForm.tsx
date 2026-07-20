@@ -1,20 +1,15 @@
 "use client";
 
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listCategories } from "@/services/category.service";
 import type { Category } from "@/types/category";
-import type { Product, ProductAdminInput } from "@/types/product";
+import type { ProductAdminInput } from "@/types/product";
 import { getApiErrorMessage } from "@/utils/apiError";
 
 interface ProductFormState {
@@ -23,13 +18,13 @@ interface ProductFormState {
   name: string;
   slug: string;
   description: string;
+  vehicle_model: string;
   price: string;
   stock_minimum: string;
   weight: string;
   width: string;
   height: string;
   length: string;
-  vehicle_model: string;
   meters: string;
   is_active: boolean;
 }
@@ -40,35 +35,16 @@ const EMPTY_FORM: ProductFormState = {
   name: "",
   slug: "",
   description: "",
+  vehicle_model: "",
   price: "",
   stock_minimum: "0",
   weight: "",
   width: "",
   height: "",
   length: "",
-  vehicle_model: "",
   meters: "",
   is_active: true,
 };
-
-function toForm(product: Product): ProductFormState {
-  return {
-    category_id: product.category_id,
-    sku: product.sku,
-    name: product.name,
-    slug: product.slug,
-    description: product.description ?? "",
-    price: product.price,
-    stock_minimum: String(product.stock_minimum),
-    weight: product.weight ?? "",
-    width: product.width ?? "",
-    height: product.height ?? "",
-    length: product.length ?? "",
-    vehicle_model: product.vehicle_model ?? "",
-    meters: product.meters ?? "",
-    is_active: product.is_active,
-  };
-}
 
 function toInput(form: ProductFormState): ProductAdminInput {
   return {
@@ -77,39 +53,33 @@ function toInput(form: ProductFormState): ProductAdminInput {
     name: form.name,
     slug: form.slug || undefined,
     description: form.description || undefined,
+    vehicle_model: form.vehicle_model || undefined,
     price: form.price,
     stock_minimum: Number(form.stock_minimum || 0),
     weight: form.weight || undefined,
     width: form.width || undefined,
     height: form.height || undefined,
     length: form.length || undefined,
-    vehicle_model: form.vehicle_model || undefined,
     meters: form.meters || undefined,
     is_active: form.is_active,
   };
 }
 
 interface ProductFormProps {
-  product?: Product;
   formId: string;
   onSubmit: (data: ProductAdminInput) => Promise<void>;
   onSavingChange?: (isSaving: boolean) => void;
-  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export interface ProductFormHandle {
-  /** Salva a partir de fora do form (ex.: "salvar e sair" no header). Retorna se deu certo. */
-  save: () => Promise<boolean>;
-}
-
-export const ProductForm = forwardRef<ProductFormHandle, ProductFormProps>(function ProductForm(
-  { product, formId, onSubmit, onSavingChange, onDirtyChange },
-  ref
-) {
+/**
+ * Cria um produto e sua variante padrao (unica) numa so' vez — por isso o
+ * formulario ainda pede preco/estoque/dimensoes junto com nome/categoria.
+ * Depois de criado, tamanhos adicionais (e a variante "Personalizado") sao
+ * geridos em ProductVariantManager, na tela de edicao.
+ */
+export function ProductForm({ formId, onSubmit, onSavingChange }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const initialForm = product ? toForm(product) : EMPTY_FORM;
-  const [form, setForm] = useState<ProductFormState>(initialForm);
-  const [savedForm, setSavedForm] = useState<ProductFormState>(initialForm);
+  const [form, setForm] = useState<ProductFormState>(EMPTY_FORM);
 
   useEffect(() => {
     listCategories()
@@ -119,29 +89,20 @@ export const ProductForm = forwardRef<ProductFormHandle, ProductFormProps>(funct
       });
   }, []);
 
-  useEffect(() => {
-    onDirtyChange?.(JSON.stringify(form) !== JSON.stringify(savedForm));
-  }, [form, savedForm, onDirtyChange]);
-
-  async function doSubmit(): Promise<boolean> {
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (form.category_id === "") {
+      toast.error("Selecione uma categoria.");
+      return;
+    }
     onSavingChange?.(true);
     try {
       await onSubmit(toInput(form));
-      setSavedForm(form);
-      return true;
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Não foi possível salvar este produto."));
-      return false;
     } finally {
       onSavingChange?.(false);
     }
-  }
-
-  useImperativeHandle(ref, () => ({ save: doSubmit }));
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    await doSubmit();
   }
 
   return (
@@ -183,24 +144,21 @@ export const ProductForm = forwardRef<ProductFormHandle, ProductFormProps>(funct
           </div>
 
           <Field label="Categoria" htmlFor="p-category">
-            <select
-              id="p-category"
-              required
-              value={form.category_id}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, category_id: Number(e.target.value) }))
-              }
-              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+            <Select
+              value={form.category_id === "" ? "" : String(form.category_id)}
+              onValueChange={(value) => setForm((f) => ({ ...f, category_id: Number(value) }))}
             >
-              <option value="" disabled>
-                Selecione uma categoria
-              </option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="p-category" className="w-full">
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
 
           <div className="grid grid-cols-2 gap-4">
@@ -302,11 +260,9 @@ export const ProductForm = forwardRef<ProductFormHandle, ProductFormProps>(funct
           </div>
 
           <label className="flex items-center gap-2 text-sm text-foreground">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={form.is_active}
-              onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-              className="accent-foreground"
+              onCheckedChange={(checked) => setForm((f) => ({ ...f, is_active: checked === true }))}
             />
             Produto ativo (visível na loja)
           </label>
@@ -314,7 +270,7 @@ export const ProductForm = forwardRef<ProductFormHandle, ProductFormProps>(funct
       </CardContent>
     </Card>
   );
-});
+}
 
 function Field({
   label,

@@ -1,17 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 import { LowStockTable } from "@/components/admin/stock/LowStockTable";
 import { MovementsTable } from "@/components/admin/stock/MovementsTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listProductsAdmin } from "@/services/product.service";
-import { getLowStockProducts, listMovements } from "@/services/stock.service";
-import type { Product } from "@/types/product";
+import { getLowStockVariants, listMovements } from "@/services/stock.service";
+import type { Product, ProductVariant } from "@/types/product";
 import type { StockMovement, StockMovementType } from "@/types/stock";
 import { getApiErrorMessage } from "@/utils/apiError";
+import { getVariantDisplayLabel } from "@/utils/productVariants";
 import { STOCK_MOVEMENT_TYPE_LABEL } from "@/utils/stockMovement";
 
 const PAGE_SIZE = 20;
@@ -24,19 +28,19 @@ const MOVEMENT_TYPES: StockMovementType[] = [
 ];
 
 export default function AdminStockPage() {
-  const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
+  const [lowStockVariants, setLowStockVariants] = useState<ProductVariant[]>([]);
   const [isLoadingLowStock, setIsLoadingLowStock] = useState(true);
 
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [isLoadingMovements, setIsLoadingMovements] = useState(true);
-  const [productId, setProductId] = useState<number | "">("");
+  const [variantId, setVariantId] = useState<number | "">("");
   const [movementType, setMovementType] = useState<StockMovementType | "">("");
   const [page, setPage] = useState(0);
 
   useEffect(() => {
-    getLowStockProducts()
-      .then((data) => setLowStockProducts(data))
+    getLowStockVariants()
+      .then((data) => setLowStockVariants(data))
       .catch((error) => {
         toast.error(getApiErrorMessage(error, "Não foi possível carregar o estoque baixo."));
       })
@@ -61,7 +65,7 @@ export default function AdminStockPage() {
 
       try {
         const data = await listMovements({
-          product_id: productId === "" ? undefined : productId,
+          variant_id: variantId === "" ? undefined : variantId,
           movement_type: movementType === "" ? undefined : movementType,
           skip: page * PAGE_SIZE,
           limit: PAGE_SIZE,
@@ -81,11 +85,26 @@ export default function AdminStockPage() {
     return () => {
       cancelled = true;
     };
-  }, [productId, movementType, page]);
+  }, [variantId, movementType, page]);
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-heading text-2xl font-semibold text-foreground">Estoque</h1>
+      <div>
+        <Link
+          href="/admin/products"
+          className="mb-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" aria-hidden />
+          Voltar para produtos
+        </Link>
+        <h1 className="font-heading text-2xl font-semibold text-foreground">
+          Movimentações de estoque
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Para adicionar ou retirar estoque de uma variante específica, edite o produto — aqui é
+          só o histórico e o alerta de estoque baixo.
+        </p>
+      </div>
 
       <Card>
         <CardHeader>
@@ -95,7 +114,7 @@ export default function AdminStockPage() {
           {isLoadingLowStock ? (
             <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
           ) : (
-            <LowStockTable products={lowStockProducts} />
+            <LowStockTable variants={lowStockVariants} products={allProducts} />
           )}
         </CardContent>
       </Card>
@@ -105,36 +124,48 @@ export default function AdminStockPage() {
           <CardTitle>Movimentações</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4">
-          <select
-            value={productId}
-            onChange={(e) => {
+          <Select
+            value={variantId === "" ? "all" : String(variantId)}
+            onValueChange={(value) => {
               setPage(0);
-              setProductId(e.target.value === "" ? "" : Number(e.target.value));
+              setVariantId(value === "all" ? "" : Number(value));
             }}
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
           >
-            <option value="">Todos os produtos</option>
-            {allProducts.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={movementType}
-            onChange={(e) => {
+            <SelectTrigger className="w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as variantes</SelectItem>
+              {allProducts.flatMap((p) =>
+                p.variants
+                  .filter((v) => !v.is_custom)
+                  .map((v) => (
+                    <SelectItem key={v.id} value={String(v.id)}>
+                      {p.name} — {getVariantDisplayLabel(v)}
+                    </SelectItem>
+                  ))
+              )}
+            </SelectContent>
+          </Select>
+          <Select
+            value={movementType || "all"}
+            onValueChange={(value) => {
               setPage(0);
-              setMovementType(e.target.value as StockMovementType | "");
+              setMovementType(value === "all" ? "" : (value as StockMovementType));
             }}
-            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
           >
-            <option value="">Todos os tipos</option>
-            {MOVEMENT_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {STOCK_MOVEMENT_TYPE_LABEL[type]}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              {MOVEMENT_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {STOCK_MOVEMENT_TYPE_LABEL[type]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
