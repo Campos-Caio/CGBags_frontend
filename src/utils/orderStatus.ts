@@ -9,6 +9,8 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   SHIPPED: "Enviado",
   DELIVERED: "Entregue",
   CANCELED: "Cancelado",
+  RETURN_REQUESTED: "Devolução em andamento",
+  RETURNED: "Devolvido",
 };
 
 export const ORDER_STATUS_BADGE_VARIANT: Record<OrderStatus, BadgeVariant> = {
@@ -19,6 +21,8 @@ export const ORDER_STATUS_BADGE_VARIANT: Record<OrderStatus, BadgeVariant> = {
   SHIPPED: "secondary",
   DELIVERED: "muted",
   CANCELED: "destructive",
+  RETURN_REQUESTED: "warning",
+  RETURNED: "muted",
 };
 
 /**
@@ -33,6 +37,8 @@ export const ORDER_STATUS_RELEVANCE_RANK: Record<OrderStatus, number> = {
   PROCESSING: 1,
   PAID: 1,
   SHIPPED: 1,
+  RETURN_REQUESTED: 1,
   DELIVERED: 2,
+  RETURNED: 3,
   CANCELED: 3,
 };
