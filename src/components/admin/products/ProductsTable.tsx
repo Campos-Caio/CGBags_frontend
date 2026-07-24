@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { RowActionsMenu, type RowAction } from "@/components/admin/data/RowActionsMenu";
+import { RowActionsMenu } from "@/components/admin/data/RowActionsMenu";
 import { EmptyState } from "@/components/admin/feedback/EmptyState";
 import { StatusToggle } from "@/components/admin/feedback/StatusToggle";
 import { StockActionsPanel } from "@/components/admin/stock/StockActionsPanel";
@@ -61,6 +62,12 @@ interface ProductsTableProps {
   onProductsChange: (products: Product[]) => void;
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
+  /** Selecao para edicao em massa — por variant.id: cada linha da tabela e'
+   * uma variante e pode ser selecionada individualmente, mesmo quando o
+   * produto tem varias (ex.: selecionar so' os tamanhos "15m" e "20m"). */
+  selectedVariantIds: Set<number>;
+  onToggleVariant: (variantId: number) => void;
+  onToggleAll: (variantIds: number[]) => void;
 }
 
 export function ProductsTable({
@@ -69,6 +76,9 @@ export function ProductsTable({
   onProductsChange,
   hasActiveFilters = false,
   onClearFilters,
+  selectedVariantIds,
+  onToggleVariant,
+  onToggleAll,
 }: ProductsTableProps) {
   const [togglingId, setTogglingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -160,11 +170,22 @@ export function ProductsTable({
 
   const stockRow = stockVariant ? rows.find((r) => r.variant.id === stockVariant.id) ?? null : null;
 
+  const allVariantIds = rows.map((r) => r.variant.id);
+  const allSelected = allVariantIds.length > 0 && allVariantIds.every((id) => selectedVariantIds.has(id));
+  const someSelected = !allSelected && allVariantIds.some((id) => selectedVariantIds.has(id));
+
   return (
     <>
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-8">
+              <Checkbox
+                aria-label="Selecionar todos"
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={() => onToggleAll(allVariantIds)}
+              />
+            </TableHead>
             <TableHead></TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>SKU</TableHead>
@@ -183,6 +204,13 @@ export function ProductsTable({
 
             return (
               <TableRow key={variant.id}>
+                <TableCell>
+                  <Checkbox
+                    aria-label={`Selecionar ${rowDisplayName(row)}`}
+                    checked={selectedVariantIds.has(variant.id)}
+                    onCheckedChange={() => onToggleVariant(variant.id)}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="relative size-10 overflow-hidden rounded-md bg-muted">
                     {product.images[0] && (
@@ -239,17 +267,23 @@ export function ProductsTable({
                       </TooltipTrigger>
                       <TooltipContent>Editar produto</TooltipContent>
                     </Tooltip>
+                    {!variant.is_custom && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            aria-label="Gerenciar estoque"
+                            onClick={() => setStockVariant(variant)}
+                          >
+                            <Boxes className="size-3.5" aria-hidden />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Gerenciar estoque</TooltipContent>
+                      </Tooltip>
+                    )}
                     <RowActionsMenu
                       actions={[
-                        ...(!variant.is_custom
-                          ? [
-                              {
-                                label: "Gerenciar estoque",
-                                icon: Boxes,
-                                onClick: () => setStockVariant(variant),
-                              } satisfies RowAction,
-                            ]
-                          : []),
                         {
                           label: "Excluir",
                           icon: Trash2,
@@ -277,6 +311,7 @@ export function ProductsTable({
                 </DialogTitle>
               </DialogHeader>
               <StockActionsPanel
+                mode="single"
                 variantId={stockRow.variant.id}
                 stockQuantity={stockRow.variant.stock_quantity}
                 onStockChange={(qty) => handleStockChange(stockRow, qty)}

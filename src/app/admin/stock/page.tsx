@@ -114,7 +114,17 @@ export default function AdminStockPage() {
           {isLoadingLowStock ? (
             <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
           ) : (
-            <LowStockTable variants={lowStockVariants} products={allProducts} />
+            <LowStockTable
+              variants={lowStockVariants}
+              products={allProducts}
+              onStockChange={(variant, newQuantity) => {
+                setLowStockVariants((prev) =>
+                  newQuantity > variant.stock_minimum
+                    ? prev.filter((v) => v.id !== variant.id)
+                    : prev.map((v) => (v.id === variant.id ? { ...v, stock_quantity: newQuantity } : v))
+                );
+              }}
+            />
           )}
         </CardContent>
       </Card>

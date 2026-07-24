@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/admin/layout/PageHeader";
 import { FilterBar } from "@/components/admin/data/FilterBar";
 import { TablePagination } from "@/components/admin/data/TablePagination";
+import { BulkActionsBar } from "@/components/admin/products/BulkActionsBar";
 import { ProductsTable } from "@/components/admin/products/ProductsTable";
 import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,11 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [status, setStatus] = useState<StatusFilter>("all");
+  const [selectedVariantIds, setSelectedVariantIds] = useState<Set<number>>(new Set());
+  // Incrementado apos uma acao em massa pra forcar o useAdminList a refazer a
+  // busca (a mudanca fica no servidor pra varios produtos de uma vez, nao da
+  // pra so' atualizar o estado local como as edicoes individuais fazem).
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Restaura os filtros a partir da URL ao montar — ex.: o admin busca "corrente
   // 8mm", cria o produto que faltava e volta pra lista sem perder a busca.
@@ -76,9 +82,25 @@ export default function AdminProductsPage() {
         skip,
         limit,
       }),
-    deps: [search, categoryId, status],
+    deps: [search, categoryId, status, refreshKey],
     errorMessage: "Não foi possível carregar os produtos.",
   });
+
+  function toggleVariant(variantId: number) {
+    setSelectedVariantIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(variantId)) next.delete(variantId);
+      else next.add(variantId);
+      return next;
+    });
+  }
+
+  function toggleAll(variantIds: number[]) {
+    setSelectedVariantIds((prev) => {
+      const allSelected = variantIds.length > 0 && variantIds.every((id) => prev.has(id));
+      return allSelected ? new Set() : new Set(variantIds);
+    });
+  }
 
   function updateUrl(next: { search?: string; categoryId?: number | ""; status?: StatusFilter }) {
     const nextSearch = next.search ?? search;
@@ -183,6 +205,12 @@ export default function AdminProductsPage() {
         </Select>
       </FilterBar>
 
+      <BulkActionsBar
+        selectedIds={[...selectedVariantIds]}
+        onClearSelection={() => setSelectedVariantIds(new Set())}
+        onDone={() => setRefreshKey((k) => k + 1)}
+      />
+
       <Card>
         <CardContent>
           {isLoading ? (
@@ -194,6 +222,9 @@ export default function AdminProductsPage() {
               onProductsChange={setProducts}
               hasActiveFilters={hasActiveFilters}
               onClearFilters={clearFilters}
+              selectedVariantIds={selectedVariantIds}
+              onToggleVariant={toggleVariant}
+              onToggleAll={toggleAll}
             />
           )}
         </CardContent>
