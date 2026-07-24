@@ -8,11 +8,9 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Container } from "@/components/ui/container";
 import { DefinitionRow } from "@/components/ui/definition-row";
 import { Input } from "@/components/ui/input";
 import { PixPaymentPanel } from "@/components/order/PixPaymentPanel";
-import { useAuth } from "@/context/AuthContext";
 import { getMyOrderById, payOrder, type CardPaymentMethod } from "@/services/order.service";
 import type { Order } from "@/types/order";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -40,7 +38,6 @@ function maskCardNumber(raw: string): string {
 export default function PaymentPage() {
   const router = useRouter();
   const params = useParams<{ orderId: string }>();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [pageStatus, setPageStatus] = useState<PageStatus>("loading");
@@ -63,14 +60,6 @@ export default function PaymentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.replace("/login");
-    }
-  }, [authLoading, isAuthenticated, router]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
     let cancelled = false;
 
     async function loadOrder() {
@@ -102,7 +91,7 @@ export default function PaymentPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, params.orderId, router]);
+  }, [params.orderId, router]);
 
   function handleCardNumberChange(e: ChangeEvent<HTMLInputElement>) {
     const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
@@ -175,15 +164,13 @@ export default function PaymentPage() {
     router.push(`/account/orders/${order.id}`);
   }
 
-  if (authLoading || !isAuthenticated || pageStatus === "loading") {
-    return (
-      <Container className="py-16 text-center text-muted-foreground">Carregando...</Container>
-    );
+  if (pageStatus === "loading") {
+    return <p className="py-16 text-center text-muted-foreground">Carregando...</p>;
   }
 
   if (pageStatus === "error" || !order) {
     return (
-      <Container className="flex flex-col items-center gap-4 py-24 text-center">
+      <div className="flex flex-col items-center gap-4 py-24 text-center">
         <h1 className="font-heading text-2xl font-semibold text-foreground">
           Pedido não encontrado
         </h1>
@@ -194,15 +181,14 @@ export default function PaymentPage() {
           <ArrowLeft className="size-4" aria-hidden />
           Ver meus pedidos
         </Link>
-      </Container>
+      </div>
     );
   }
 
   const totalPerInstallment = (Number(order.total) / installments).toFixed(2);
 
   return (
-    <Container className="py-12 sm:py-16">
-      <div className="mx-auto max-w-2xl">
+    <>
         <Link
           href="/account/orders"
           className="mb-8 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -443,7 +429,6 @@ export default function PaymentPage() {
             </>
           )}
         </div>
-      </div>
-    </Container>
+    </>
   );
 }
