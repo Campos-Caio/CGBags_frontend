@@ -22,6 +22,23 @@ export async function logout(): Promise<void> {
   await api.post("/auth/logout");
 }
 
+export async function getGoogleAuthUrl(
+  redirectUri: string
+): Promise<{ url: string; state: string }> {
+  const response = await api.get<{ url: string; state: string }>("/auth/google", {
+    params: { redirect_uri: redirectUri },
+  });
+  return response.data;
+}
+
+export async function googleCallback(code: string, redirectUri: string): Promise<Token> {
+  const response = await api.post<Token>("/auth/google/callback", {
+    code,
+    redirect_uri: redirectUri,
+  });
+  return response.data;
+}
+
 export async function getMe(): Promise<User> {
   const response = await api.get<User>("/users/me");
   return response.data;
