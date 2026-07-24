@@ -34,7 +34,10 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     label: "Financeiro",
-    links: [{ label: "Financeiro", href: "/admin/financeiro", enabled: true }],
+    links: [
+      { label: "Financeiro", href: "/admin/financeiro", enabled: true },
+      { label: "Relatórios", href: "/admin/financeiro/relatorios", enabled: true },
+    ],
   },
   {
     label: "Clientes",

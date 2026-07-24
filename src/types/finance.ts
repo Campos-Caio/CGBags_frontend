@@ -12,6 +12,8 @@ export interface FinanceDashboard {
   total_discounts: string;
   average_ticket: string;
   total_refunds: string;
+  canceled_orders_count: number;
+  canceled_orders_total: string;
 }
 
 export interface MonthlyRevenueItem {
@@ -36,4 +38,29 @@ export interface SalesByPaymentMethodItem {
 export interface SalesByPaymentMethod {
   items: SalesByPaymentMethodItem[];
   total_gross: string;
+}
+
+export type FinanceEntryType = "SALE" | "REFUND";
+
+export interface FinanceEntry {
+  id: number;
+  order_id: number;
+  payment_id: number;
+  type: FinanceEntryType;
+  gross_amount: string;
+  discount_amount: string;
+  gateway_fee: string;
+  shipping_cost: string;
+  net_amount: string;
+  occurred_at: string;
+}
+
+export interface CanceledOrder {
+  id: number;
+  customer_name: string;
+  customer_email: string;
+  total: string;
+  status: "CANCELED";
+  created_at: string;
+  updated_at: string;
 }
