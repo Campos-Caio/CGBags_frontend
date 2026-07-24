@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { StatsCard } from "@/components/admin/cards/StatsCard";
@@ -8,6 +9,7 @@ import { FinanceSummaryCards } from "@/components/admin/finance/FinanceSummaryCa
 import { MonthlyRevenueChart } from "@/components/admin/finance/MonthlyRevenueChart";
 import { PaymentMethodBreakdown } from "@/components/admin/finance/PaymentMethodBreakdown";
 import { PageHeader } from "@/components/admin/layout/PageHeader";
+import { Button } from "@/components/ui/button";
 import { useAdminResource } from "@/hooks/useAdminResource";
 import { getMelhorEnvioBalance } from "@/services/admin.service";
 import { getFinanceDashboard, getSalesByPaymentMethod } from "@/services/finance.service";
@@ -42,7 +44,14 @@ export default function AdminFinancePage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Financeiro"
-        actions={<FinancePeriodSelect value={period} onChange={setPeriod} />}
+        actions={
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/admin/financeiro/relatorios">Relatórios</Link>
+            </Button>
+            <FinancePeriodSelect value={period} onChange={setPeriod} />
+          </>
+        }
       />
 
       {status === "loading" || !dashboard ? (

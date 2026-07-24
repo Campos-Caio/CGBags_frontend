@@ -242,6 +242,7 @@ export function ProductVariantManager({
             {managingStockId === variant.id && (
               <div className="mt-3">
                 <StockActionsPanel
+                  mode="single"
                   variantId={variant.id}
                   stockQuantity={variant.stock_quantity}
                   onStockChange={(qty) => handleStockChange(variant.id, qty)}

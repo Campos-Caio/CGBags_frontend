@@ -9,6 +9,7 @@ interface FinanceSummaryCardsProps {
 /** Grade de indicadores financeiros de um período — reaproveita o StatsCard do Dashboard geral. */
 export function FinanceSummaryCards({ dashboard }: FinanceSummaryCardsProps) {
   const hasRefunds = Number(dashboard.total_refunds) > 0;
+  const hasCanceled = Number(dashboard.canceled_orders_total) > 0;
 
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -22,6 +23,11 @@ export function FinanceSummaryCards({ dashboard }: FinanceSummaryCardsProps) {
         label="Reembolsos"
         value={formatCurrency(dashboard.total_refunds)}
         severity={hasRefunds ? "attention" : "neutral"}
+      />
+      <StatsCard
+        label={`Total cancelado (${dashboard.canceled_orders_count})`}
+        value={formatCurrency(dashboard.canceled_orders_total)}
+        severity={hasCanceled ? "attention" : "neutral"}
       />
     </div>
   );

@@ -10,16 +10,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Container } from "@/components/ui/container";
 import { DefinitionRow } from "@/components/ui/definition-row";
+import { OrderReturnCard } from "@/components/order/OrderReturnCard";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { OrderTrackingTimeline } from "@/components/order/OrderTrackingTimeline";
 import { useAuth } from "@/context/AuthContext";
-import { cancelOrder, getMyOrderById, getOrderTracking } from "@/services/order.service";
+import {
+  cancelOrder,
+  getMyOrderById,
+  getOrderReturn,
+  getOrderTracking,
+  requestOrderReturn,
+} from "@/services/order.service";
 import type { Order, OrderStatus } from "@/types/order";
+import type { OrderReturn } from "@/types/orderReturn";
 import type { OrderTracking } from "@/types/tracking";
 import { getApiErrorMessage } from "@/utils/apiError";
 import { confirmToast } from "@/utils/confirmToast";
 import { formatCurrency } from "@/utils/currency";
 import { formatDateTime } from "@/utils/date";
+import { getDeliveredAt, isWithinReturnWindow } from "@/utils/returnWindow";
 
 type PageStatus = "loading" | "ready" | "error";
 
@@ -34,6 +43,8 @@ export default function OrderDetailPage() {
   const [status, setStatus] = useState<PageStatus>("loading");
   const [isCancelling, setIsCancelling] = useState(false);
   const [tracking, setTracking] = useState<OrderTracking | null>(null);
+  const [orderReturn, setOrderReturn] = useState<OrderReturn | null>(null);
+  const [isRequestingReturn, setIsRequestingReturn] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -93,6 +104,25 @@ export default function OrderDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- so' refaz pelo id, nao pela identidade do objeto Order inteiro
   }, [order?.id]);
 
+  useEffect(() => {
+    if (!order || order.status !== "DELIVERED") return;
+
+    let cancelled = false;
+
+    // Informativo — se falhar, so' o card/botao de devolucao ficam ausentes,
+    // o resto da tela do pedido continua util.
+    getOrderReturn(order.id)
+      .then((data) => {
+        if (!cancelled) setOrderReturn(data);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- so' refaz pelo id/status, nao pela identidade do objeto Order inteiro
+  }, [order?.id, order?.status]);
+
   function handleCancel() {
     if (!order) return;
     const message =
@@ -113,6 +143,33 @@ export default function OrderDetailPage() {
       toast.error(getApiErrorMessage(error, "Não foi possível cancelar este pedido."));
     } finally {
       setIsCancelling(false);
+    }
+  }
+
+  function handleRequestReturn() {
+    confirmToast(
+      "Solicitar devolução deste pedido? O valor será reembolsado imediatamente.",
+      performRequestReturn,
+      { confirmLabel: "Solicitar devolução" }
+    );
+  }
+
+  async function performRequestReturn() {
+    if (!order) return;
+    setIsRequestingReturn(true);
+    try {
+      const result = await requestOrderReturn(order.id);
+      setOrderReturn(result);
+      setOrder({ ...order, status: "RETURN_REQUESTED" });
+      toast.success(
+        result.status === "AWAITING_PICKUP"
+          ? "Devolução solicitada! Reembolso confirmado — use o código de devolução para postar nos Correios."
+          : "Devolução solicitada! Reembolso confirmado — nossa equipe vai entrar em contato para combinar a coleta."
+      );
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível solicitar a devolução."));
+    } finally {
+      setIsRequestingReturn(false);
     }
   }
 
@@ -152,6 +209,13 @@ export default function OrderDetailPage() {
     .filter(Boolean)
     .join(" — ");
 
+  const deliveredAt = getDeliveredAt(tracking);
+  const canRequestReturn =
+    order.status === "DELIVERED" &&
+    !orderReturn &&
+    deliveredAt !== null &&
+    isWithinReturnWindow(deliveredAt);
+
   return (
     <Container className="py-12 sm:py-16">
       <div className="mx-auto max-w-2xl">
@@ -188,6 +252,16 @@ export default function OrderDetailPage() {
                   onClick={handleCancel}
                 >
                   {isCancelling ? "Cancelando..." : "Cancelar pedido"}
+                </Button>
+              )}
+              {canRequestReturn && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isRequestingReturn}
+                  onClick={handleRequestReturn}
+                >
+                  {isRequestingReturn ? "Solicitando..." : "Solicitar devolução"}
                 </Button>
               )}
             </div>
@@ -248,6 +322,7 @@ export default function OrderDetailPage() {
           </Card>
 
           {tracking && <OrderTrackingTimeline tracking={tracking} />}
+          {orderReturn && <OrderReturnCard orderReturn={orderReturn} />}
         </div>
       </div>
     </Container>

@@ -2,6 +2,7 @@ import axios from "axios";
 
 import { api } from "@/lib/api";
 import type { Customer, CustomerCreateInput, CustomerUpdateInput } from "@/types/customer";
+import type { Order } from "@/types/order";
 
 export async function getMyProfile(): Promise<Customer | null> {
   try {
@@ -61,4 +62,28 @@ export async function updateCustomerAdmin(
 
 export async function deleteCustomerAdmin(id: number): Promise<void> {
   await api.delete(`/customers/${id}`);
+}
+
+export interface ListCustomerOrdersParams {
+  skip?: number;
+  limit?: number;
+}
+
+export async function listCustomerOrdersAdmin(
+  customerId: number,
+  params?: ListCustomerOrdersParams
+): Promise<Order[]> {
+  const response = await api.get<Order[]>(`/customers/${customerId}/orders`, { params });
+  return response.data;
+}
+
+export async function updateCustomerNoteAdmin(
+  id: number,
+  note: string | null
+): Promise<{ id: number; internal_note: string | null }> {
+  const response = await api.patch<{ id: number; internal_note: string | null }>(
+    `/customers/${id}/note`,
+    { note }
+  );
+  return response.data;
 }

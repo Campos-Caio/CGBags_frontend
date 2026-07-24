@@ -1,7 +1,7 @@
-// "Contato" removido ate a pagina /contact existir — nao expor link morto no menu.
 export const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Produtos", href: "/products" },
+  { label: "Contato", href: "/contact" },
 ] as const;
 
 // Contatos/redes sociais ainda nao definidos pela CG Bags. Valor "#" e o

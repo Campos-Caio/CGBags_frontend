@@ -10,6 +10,7 @@ import type {
   ProductVariantInput,
   ProductVariantUpdateInput,
 } from "@/types/product";
+import type { StockAddInput } from "@/types/stock";
 
 interface ListProductsParams {
   limit?: number;
@@ -125,4 +126,51 @@ export async function updateProductVariant(
 
 export async function deleteProductVariant(productId: number, variantId: number): Promise<void> {
   await api.delete(`/products/${productId}/variants/${variantId}`);
+}
+
+// --- Edicao em massa (admin) ---
+
+interface BulkActionResult {
+  updated_count: number;
+}
+
+export async function bulkSetProductStatus(
+  variantIds: number[],
+  isActive: boolean
+): Promise<number> {
+  const response = await api.patch<BulkActionResult>("/products/bulk/status", {
+    variant_ids: variantIds,
+    is_active: isActive,
+  });
+  return response.data.updated_count;
+}
+
+/** `percent` positivo aumenta o preco, negativo reduz (ex.: 10 = +10%, -5 = -5%). */
+export async function bulkAdjustProductPrice(
+  variantIds: number[],
+  percent: number
+): Promise<number> {
+  const response = await api.patch<BulkActionResult>("/products/bulk/price", {
+    variant_ids: variantIds,
+    percent,
+  });
+  return response.data.updated_count;
+}
+
+/** So' entrada (soma) — nunca remove estoque em massa. */
+export async function bulkAddProductStock(
+  variantIds: number[],
+  quantity: number,
+  movementType: StockAddInput["movement_type"],
+  reason?: string,
+  reference?: string
+): Promise<number> {
+  const response = await api.patch<BulkActionResult>("/products/bulk/stock", {
+    variant_ids: variantIds,
+    quantity,
+    movement_type: movementType,
+    reason: reason || undefined,
+    reference: reference || undefined,
+  });
+  return response.data.updated_count;
 }

@@ -18,6 +18,8 @@ export interface Customer {
   addresses?: Address[];
   /** Só vem preenchido na listagem admin (GET /customers/) — usado pro aviso de exclusão. */
   cart_item_count?: number;
+  /** So' vem preenchido em GET /customers/{id} (admin) — nunca no self-service. */
+  internal_note?: string | null;
 }
 
 export interface CustomerCreateInput {

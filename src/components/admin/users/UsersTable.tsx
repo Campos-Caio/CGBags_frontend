@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Eye, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { RowActionsMenu } from "@/components/admin/data/RowActionsMenu";
@@ -109,13 +109,13 @@ export function UsersTable({
                 <div className="flex items-center justify-end gap-1.5">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" aria-label="Ver usuário" asChild>
+                      <Button variant="outline" size="sm" aria-label="Editar usuário" asChild>
                         <Link href={`/admin/users/${user.id}`}>
-                          <Eye className="size-3.5" aria-hidden />
+                          <Pencil className="size-3.5" aria-hidden />
                         </Link>
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Ver usuário</TooltipContent>
+                    <TooltipContent>Editar usuário</TooltipContent>
                   </Tooltip>
                   <RowActionsMenu
                     actions={[

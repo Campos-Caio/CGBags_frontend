@@ -29,11 +29,15 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { label: "Pedidos", href: "/admin/orders", enabled: true },
       { label: "Orçamentos", href: "/admin/quotes", enabled: true },
       { label: "Cupons", href: "/admin/coupons", enabled: true },
+      { label: "Contato", href: "/admin/contact", enabled: true },
     ],
   },
   {
     label: "Financeiro",
-    links: [{ label: "Financeiro", href: "/admin/financeiro", enabled: true }],
+    links: [
+      { label: "Financeiro", href: "/admin/financeiro", enabled: true },
+      { label: "Relatórios", href: "/admin/financeiro/relatorios", enabled: true },
+    ],
   },
   {
     label: "Clientes",
@@ -41,6 +45,9 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     label: "Administração",
-    links: [{ label: "Usuários", href: "/admin/users", enabled: true }],
+    links: [
+      { label: "Usuários", href: "/admin/users", enabled: true },
+      { label: "Auditoria", href: "/admin/audit", enabled: true },
+    ],
   },
 ];

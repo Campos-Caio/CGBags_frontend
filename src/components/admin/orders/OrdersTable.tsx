@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 import { EmptyState } from "@/components/admin/feedback/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -15,17 +17,47 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
+import { updateOrderStatusAdmin } from "@/services/order.service";
 import type { Order } from "@/types/order";
+import { getApiErrorMessage } from "@/utils/apiError";
+import { confirmToast } from "@/utils/confirmToast";
 import { formatCurrency } from "@/utils/currency";
 import { formatDateTime } from "@/utils/date";
 
 interface OrdersTableProps {
   orders: Order[];
+  onOrderChange?: (order: Order) => void;
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
 }
 
-export function OrdersTable({ orders, hasActiveFilters = false, onClearFilters }: OrdersTableProps) {
+export function OrdersTable({
+  orders,
+  onOrderChange,
+  hasActiveFilters = false,
+  onClearFilters,
+}: OrdersTableProps) {
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+
+  function handleMarkDelivered(order: Order) {
+    confirmToast(`Marcar o pedido #${order.id} como entregue?`, () => performMarkDelivered(order), {
+      confirmLabel: "Marcar como entregue",
+    });
+  }
+
+  async function performMarkDelivered(order: Order) {
+    setUpdatingId(order.id);
+    try {
+      const updated = await updateOrderStatusAdmin(order.id, "DELIVERED");
+      onOrderChange?.(updated);
+      toast.success("Pedido marcado como entregue.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível marcar este pedido como entregue."));
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   if (orders.length === 0) {
     return hasActiveFilters ? (
       <EmptyState
@@ -65,16 +97,32 @@ export function OrdersTable({ orders, hasActiveFilters = false, onClearFilters }
               <OrderStatusBadge status={order.status} />
             </TableCell>
             <TableCell>
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end gap-1.5">
+                {order.status === "SHIPPED" && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-label="Marcar como entregue"
+                        disabled={updatingId === order.id}
+                        onClick={() => handleMarkDelivered(order)}
+                      >
+                        <CheckCircle2 className="size-3.5" aria-hidden />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Marcar como entregue</TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" aria-label="Ver pedido" asChild>
+                    <Button variant="outline" size="sm" aria-label="Editar pedido" asChild>
                       <Link href={`/admin/orders/${order.id}`}>
-                        <Eye className="size-3.5" aria-hidden />
+                        <Pencil className="size-3.5" aria-hidden />
                       </Link>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Ver pedido</TooltipContent>
+                  <TooltipContent>Editar pedido</TooltipContent>
                 </Tooltip>
               </div>
             </TableCell>
