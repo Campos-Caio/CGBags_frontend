@@ -102,6 +102,8 @@ export async function getOrderReturn(orderId: number): Promise<OrderReturn | nul
 export interface ListOrdersAdminParams {
   status?: OrderStatus;
   search?: string;
+  start?: string;
+  end?: string;
   skip?: number;
   limit?: number;
 }
@@ -136,4 +138,39 @@ export async function cancelOrderAdmin(id: number): Promise<Order> {
 export async function markOrderPaidManuallyAdmin(id: number, note: string): Promise<Order> {
   const response = await api.post<Order>(`/admin/orders/${id}/mark-paid`, { note });
   return response.data;
+}
+
+export async function updateOrderNoteAdmin(id: number, note: string | null): Promise<Order> {
+  const response = await api.patch<Order>(`/admin/orders/${id}/note`, { note });
+  return response.data;
+}
+
+export interface ExportOrdersAdminParams {
+  status?: OrderStatus;
+  search?: string;
+  start?: string;
+  end?: string;
+}
+
+/** Baixa o CSV filtrado — a instancia `api` ja' injeta o Bearer token, por
+ * isso usamos ela (com responseType blob) em vez de um link <a href> direto,
+ * que nao carregaria o header de autenticacao. */
+export async function exportOrdersAdmin(params?: ExportOrdersAdminParams): Promise<void> {
+  const response = await api.get<Blob>("/admin/orders/export", {
+    params,
+    responseType: "blob",
+  });
+
+  const disposition = response.headers["content-disposition"] as string | undefined;
+  const filenameMatch = disposition?.match(/filename="?([^"]+)"?/);
+  const filename = filenameMatch?.[1] ?? "pedidos.csv";
+
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }

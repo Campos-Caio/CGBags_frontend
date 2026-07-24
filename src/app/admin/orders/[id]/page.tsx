@@ -1,16 +1,20 @@
 "use client";
 
 import { useParams } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { DetailHeader } from "@/components/admin/layout/DetailHeader";
 import { ErrorState } from "@/components/admin/feedback/ErrorState";
 import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { AdminShipmentCard } from "@/components/admin/orders/AdminShipmentCard";
 import { OrderStatusControl } from "@/components/admin/orders/OrderStatusControl";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefinitionRow } from "@/components/ui/definition-row";
 import { useAdminResource } from "@/hooks/useAdminResource";
-import { getOrderByIdAdmin } from "@/services/order.service";
+import { getOrderByIdAdmin, updateOrderNoteAdmin } from "@/services/order.service";
+import { getApiErrorMessage } from "@/utils/apiError";
 import { formatCurrency } from "@/utils/currency";
 import { formatDateTime } from "@/utils/date";
 
@@ -23,6 +27,30 @@ export default function AdminOrderDetailPage() {
     deps: [orderId],
     errorMessage: "Não foi possível carregar este pedido.",
   });
+
+  const [note, setNote] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  // Resincroniza o rascunho da nota sempre que um pedido (novo ou diferente) carrega.
+  const [syncedOrderId, setSyncedOrderId] = useState<number | null>(null);
+  if (order && order.id !== syncedOrderId) {
+    setSyncedOrderId(order.id);
+    setNote(order.internal_note ?? "");
+  }
+
+  async function handleSaveNote() {
+    if (!order) return;
+    setIsSavingNote(true);
+    try {
+      const updated = await updateOrderNoteAdmin(order.id, note.trim() || null);
+      setOrder(updated);
+      toast.success("Nota salva.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível salvar a nota."));
+    } finally {
+      setIsSavingNote(false);
+    }
+  }
 
   if (status === "loading") {
     return <LoadingState />;
@@ -95,6 +123,34 @@ export default function AdminOrderDetailPage() {
                 />
               )}
               <DefinitionRow size="lg" label="Total" value={formatCurrency(order.total)} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Anotações internas</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                Visível só para a equipe — nunca aparece pro cliente.
+              </p>
+              <textarea
+                id="order-internal-note"
+                rows={3}
+                placeholder="Ex.: cliente pediu para ligar antes de entregar"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              />
+              <Button
+                type="button"
+                size="sm"
+                className="self-end"
+                disabled={isSavingNote || note === (order.internal_note ?? "")}
+                onClick={handleSaveNote}
+              >
+                {isSavingNote ? "Salvando..." : "Salvar nota"}
+              </Button>
             </CardContent>
           </Card>
         </div>

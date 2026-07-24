@@ -49,6 +49,8 @@ export interface Order {
 
   status: OrderStatus;
   items: OrderItem[];
+  /** So' vem preenchido nas rotas admin (OrderAdminRead) — nunca no self-service. */
+  internal_note?: string | null;
 
   created_at: string;
   updated_at: string;
