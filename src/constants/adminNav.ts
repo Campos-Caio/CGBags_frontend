@@ -29,6 +29,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { label: "Pedidos", href: "/admin/orders", enabled: true },
       { label: "Orçamentos", href: "/admin/quotes", enabled: true },
       { label: "Cupons", href: "/admin/coupons", enabled: true },
+      { label: "Contato", href: "/admin/contact", enabled: true },
     ],
   },
   {
