@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { DetailHeader } from "@/components/admin/layout/DetailHeader";
 import { CustomerAddressesCard } from "@/components/admin/customers/CustomerAddressesCard";
+import { CustomerOrdersCard } from "@/components/admin/customers/CustomerOrdersCard";
 import { ErrorState } from "@/components/admin/feedback/ErrorState";
 import { LoadingState } from "@/components/admin/feedback/LoadingState";
 import { StatusToggle } from "@/components/admin/feedback/StatusToggle";
@@ -16,7 +17,11 @@ import { DefinitionRow } from "@/components/ui/definition-row";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminResource } from "@/hooks/useAdminResource";
-import { getCustomerByIdAdmin, updateCustomerAdmin } from "@/services/customer.service";
+import {
+  getCustomerByIdAdmin,
+  updateCustomerAdmin,
+  updateCustomerNoteAdmin,
+} from "@/services/customer.service";
 import type { Address } from "@/types/address";
 import type { PersonType } from "@/types/customer";
 import { getApiErrorMessage } from "@/utils/apiError";
@@ -45,6 +50,8 @@ export default function CustomerDetailPage() {
   const [birthDate, setBirthDate] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [note, setNote] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   // Resincroniza o formulario sempre que um cliente (novo ou diferente) carrega.
   const [syncedCustomerId, setSyncedCustomerId] = useState<number | null>(null);
@@ -54,6 +61,21 @@ export default function CustomerDetailPage() {
     setPhone(customer.phone);
     setBirthDate(customer.birth_date?.slice(0, 10) ?? "");
     setIsActive(customer.is_active);
+    setNote(customer.internal_note ?? "");
+  }
+
+  async function handleSaveNote() {
+    if (!customer) return;
+    setIsSavingNote(true);
+    try {
+      const updated = await updateCustomerNoteAdmin(customer.id, note.trim() || null);
+      setCustomer((prev) => (prev ? { ...prev, internal_note: updated.internal_note } : prev));
+      toast.success("Nota salva.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível salvar a nota."));
+    } finally {
+      setIsSavingNote(false);
+    }
   }
 
   async function saveCustomer(): Promise<boolean> {
@@ -113,7 +135,7 @@ export default function CustomerDetailPage() {
           <StatusToggle
             active={isActive}
             onToggle={() => setIsActive((v) => !v)}
-            title="Registro informativo — hoje nenhum outro fluxo (checkout, login) verifica esse status"
+            title="Cliente inativo não consegue finalizar compras (checkout bloqueado)"
           />
         }
         actions={
@@ -187,6 +209,36 @@ export default function CustomerDetailPage() {
               </form>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Anotações internas</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                Visível só para a equipe — nunca aparece pro cliente.
+              </p>
+              <textarea
+                id="customer-internal-note"
+                rows={3}
+                placeholder="Ex.: prefere retirada combinada por telefone"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              />
+              <Button
+                type="button"
+                size="sm"
+                className="self-end"
+                disabled={isSavingNote || note === (customer.internal_note ?? "")}
+                onClick={handleSaveNote}
+              >
+                {isSavingNote ? "Salvando..." : "Salvar nota"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <CustomerOrdersCard customerId={customer.id} />
         </div>
 
         <div className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-1 lg:self-start">
