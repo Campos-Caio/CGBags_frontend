@@ -42,6 +42,9 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
   },
   {
     label: "Administração",
-    links: [{ label: "Usuários", href: "/admin/users", enabled: true }],
+    links: [
+      { label: "Usuários", href: "/admin/users", enabled: true },
+      { label: "Auditoria", href: "/admin/audit", enabled: true },
+    ],
   },
 ];
