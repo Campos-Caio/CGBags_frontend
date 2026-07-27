@@ -95,6 +95,10 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
+    // Sincroniza o estado inicial com a API imperativa do embla-carousel
+    // antes de assinar os proximos eventos; padrao recomendado pra libs
+    // baseadas em evento, nao um loop de render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)
