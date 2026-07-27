@@ -1,0 +1,102 @@
+name: Frontend CI/CD
+
+# PRs contra main: so' valida (lint + build), nunca deploya.
+# Push em main: valida de novo e, se passar, deploya.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    # Chamado "build", nao "test": nao existe suite de testes automatizada
+    # ainda neste frontend (sem Jest/Vitest/Playwright) — lint + "next build"
+    # (que já pega erro de TypeScript/import quebrado) é o gate real hoje.
+    concurrency:
+      group: frontend-build-${{ github.ref }}
+      cancel-in-progress: true
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # Nao e' sensivel (so' o path publico da API atras do nginx) —
+          # sem isso o Next grava a baseURL errada DENTRO do bundle, e so'
+          # se percebe rodando (NEXT_PUBLIC_* e' baked em build-time).
+          NEXT_PUBLIC_API_URL: /api
+
+      - name: Package standalone build
+        # "standalone" nao inclui os assets estaticos nem a pasta public
+        # automaticamente (doc oficial do Next) — precisa copiar na mao
+        # antes de empacotar, senao o server sobe mas serve tudo quebrado.
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+          tar -czf standalone.tar.gz -C .next/standalone .
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-build
+          path: standalone.tar.gz
+          retention-days: 1
+
+  deploy:
+    # cancel-in-progress: false — um deploy em andamento nunca e' cancelado
+    # no meio por um push seguinte; o proximo so' espera terminar (mesmo
+    # motivo do backend: interromper no meio pode deixar o processo
+    # derrubado sem religar).
+    concurrency:
+      group: frontend-deploy-production
+      cancel-in-progress: false
+
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    environment:
+      name: production
+
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: standalone-build
+
+      - name: Copy build to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          source: "standalone.tar.gz"
+          target: "~/cgbags-frontend-releases/"
+
+      - name: Activate new release
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            bash ${{ secrets.FRONTEND_DEPLOY_SCRIPT }}
