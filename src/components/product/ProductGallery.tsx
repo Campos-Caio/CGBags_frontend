@@ -28,6 +28,9 @@ function ProductGallery({ images, productName }: ProductGalleryProps) {
   useEffect(() => {
     if (!api) return;
 
+    // Sincroniza o indice inicial com a API imperativa do embla antes de
+    // assinar o evento "select" (mesmo padrao do carousel.tsx).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedIndex(api.selectedScrollSnap());
     const onSelect = () => setSelectedIndex(api.selectedScrollSnap());
 
