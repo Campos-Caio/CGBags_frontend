@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import {
   createContext,
   useCallback,
@@ -18,7 +17,6 @@ interface CartContextValue {
   cart: Cart | null;
   itemCount: number;
   isLoading: boolean;
-  needsCustomerProfile: boolean;
   addItem: (variantId: number, quantity?: number) => Promise<void>;
   updateItem: (itemId: number, quantity: number) => Promise<void>;
   removeItem: (itemId: number) => Promise<void>;
@@ -31,7 +29,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
   const [cart, setCart] = useState<Cart | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [needsCustomerProfile, setNeedsCustomerProfile] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
 
   const refetch = useCallback(() => setRefreshToken((count) => count + 1), []);
@@ -45,7 +42,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!isAuthenticated) {
         if (cancelled) return;
         setCart(null);
-        setNeedsCustomerProfile(false);
         return;
       }
 
@@ -54,11 +50,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const data = await cartService.getCart();
         if (cancelled) return;
         setCart(data);
-        setNeedsCustomerProfile(false);
-      } catch (error) {
+      } catch {
         if (cancelled) return;
         setCart(null);
-        setNeedsCustomerProfile(axios.isAxiosError(error) && error.response?.status === 404);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -74,7 +68,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = useCallback(async (variantId: number, quantity: number = 1) => {
     const updated = await cartService.addCartItem(variantId, quantity);
     setCart(updated);
-    setNeedsCustomerProfile(false);
   }, []);
 
   const updateItem = useCallback(async (itemId: number, quantity: number) => {
@@ -95,7 +88,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         cart,
         itemCount,
         isLoading,
-        needsCustomerProfile,
         addItem,
         updateItem,
         removeItem,

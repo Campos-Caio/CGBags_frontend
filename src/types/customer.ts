@@ -38,3 +38,11 @@ export interface CustomerUpdateInput {
   birth_date?: string;
   is_active?: boolean;
 }
+
+/** Só via rota admin dedicada (PATCH /customers/{id}/document) — corrige um
+ * erro de digitação em person_type/cpf_cnpj já cadastrado. Exige os dois
+ * campos juntos, sempre. */
+export interface CustomerDocumentCorrectionInput {
+  person_type: PersonType;
+  cpf_cnpj: string;
+}

@@ -32,6 +32,13 @@ export default function CompleteProfilePage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
+  // Trocar o tipo de pessoa reaplica a mascara com o novo limite/formato —
+  // sem isso, 14 digitos digitados como CNPJ continuariam ali ao trocar
+  // para Pessoa física, que o backend rejeitaria como CPF invalido.
+  useEffect(() => {
+    setCpfCnpj((prev) => maskCpfCnpj(prev, personType));
+  }, [personType]);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setIsSubmitting(true);
@@ -46,7 +53,7 @@ export default function CompleteProfilePage() {
       });
       toast.success("Cadastro concluído.");
       refetch();
-      router.push("/cart");
+      router.push("/checkout");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Não foi possível concluir seu cadastro."));
     } finally {
@@ -106,9 +113,9 @@ export default function CompleteProfilePage() {
               required
               inputMode="numeric"
               placeholder={personType === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
-              maxLength={18}
+              maxLength={personType === "PF" ? 14 : 18}
               value={cpfCnpj}
-              onChange={(event) => setCpfCnpj(maskCpfCnpj(event.target.value))}
+              onChange={(event) => setCpfCnpj(maskCpfCnpj(event.target.value, personType))}
             />
           </div>
 
