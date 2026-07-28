@@ -3,7 +3,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CreditCard, Landmark, Lock, QrCode } from "lucide-react";
+import { ArrowLeft, Check, CreditCard, Landmark, Lock, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,11 @@ import { formatCurrency } from "@/utils/currency";
 type PageStatus = "loading" | "ready" | "error";
 type PaymentMethod = CardPaymentMethod | "PIX";
 type Step = "select" | "pay";
+
+// Da' tempo do cliente ler o toast/mensagem de aprovacao antes de tirar ele
+// da tela — redirecionar na hora (como era antes) corta a confirmacao pela
+// metade.
+const POST_PAYMENT_REDIRECT_DELAY_MS = 3000;
 
 const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
   CREDIT_CARD: "Crédito",
@@ -58,6 +63,7 @@ export default function PaymentPage() {
   const [cvv, setCvv] = useState("");
   const [installments, setInstallments] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentApproved, setPaymentApproved] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,8 +127,10 @@ export default function PaymentPage() {
         installments: paymentMethod === "DEBIT_CARD" ? 1 : installments,
         payment_method: paymentMethod,
       });
+      setIsSubmitting(false);
+      setPaymentApproved(true);
       toast.success("Pagamento aprovado! Seu pedido está confirmado.");
-      router.push(`/account/orders/${order.id}`);
+      setTimeout(() => router.push("/account/orders"), POST_PAYMENT_REDIRECT_DELAY_MS);
     } catch (error) {
       setIsSubmitting(false);
 
@@ -160,8 +168,9 @@ export default function PaymentPage() {
 
   function handlePixApproved() {
     if (!order) return;
+    setPaymentApproved(true);
     toast.success("Pagamento aprovado! Seu pedido está confirmado.");
-    router.push(`/account/orders/${order.id}`);
+    setTimeout(() => router.push("/account/orders"), POST_PAYMENT_REDIRECT_DELAY_MS);
   }
 
   if (pageStatus === "loading") {
@@ -241,7 +250,19 @@ export default function PaymentPage() {
             </CardContent>
           </Card>
 
-          {step === "select" ? (
+          {paymentApproved ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+                <Check className="size-8 text-secondary-foreground" aria-hidden />
+                <p className="font-medium text-foreground">
+                  Pagamento aprovado! Seu pedido está confirmado.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Redirecionando para seus pedidos...
+                </p>
+              </CardContent>
+            </Card>
+          ) : step === "select" ? (
             <>
               <Card>
                 <CardHeader>

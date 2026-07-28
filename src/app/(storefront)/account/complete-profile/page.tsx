@@ -32,6 +32,14 @@ export default function CompleteProfilePage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
+  function handlePersonTypeChange(newType: PersonType) {
+    // Reaplica a mascara com o novo limite/formato — sem isso, 14 digitos
+    // digitados como CNPJ continuariam ali ao trocar para Pessoa física,
+    // que o backend rejeitaria como CPF invalido.
+    setPersonType(newType);
+    setCpfCnpj((prev) => maskCpfCnpj(prev, newType));
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setIsSubmitting(true);
@@ -46,7 +54,7 @@ export default function CompleteProfilePage() {
       });
       toast.success("Cadastro concluído.");
       refetch();
-      router.push("/cart");
+      router.push("/checkout");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Não foi possível concluir seu cadastro."));
     } finally {
@@ -76,7 +84,7 @@ export default function CompleteProfilePage() {
             <select
               id="personType"
               value={personType}
-              onChange={(event) => setPersonType(event.target.value as PersonType)}
+              onChange={(event) => handlePersonTypeChange(event.target.value as PersonType)}
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
             >
               <option value="PF">Pessoa física</option>
@@ -106,9 +114,9 @@ export default function CompleteProfilePage() {
               required
               inputMode="numeric"
               placeholder={personType === "PF" ? "000.000.000-00" : "00.000.000/0000-00"}
-              maxLength={18}
+              maxLength={personType === "PF" ? 14 : 18}
               value={cpfCnpj}
-              onChange={(event) => setCpfCnpj(maskCpfCnpj(event.target.value))}
+              onChange={(event) => setCpfCnpj(maskCpfCnpj(event.target.value, personType))}
             />
           </div>
 

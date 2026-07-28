@@ -1,7 +1,12 @@
 import axios from "axios";
 
 import { api } from "@/lib/api";
-import type { Customer, CustomerCreateInput, CustomerUpdateInput } from "@/types/customer";
+import type {
+  Customer,
+  CustomerCreateInput,
+  CustomerDocumentCorrectionInput,
+  CustomerUpdateInput,
+} from "@/types/customer";
 import type { Order } from "@/types/order";
 
 export async function getMyProfile(): Promise<Customer | null> {
@@ -57,6 +62,16 @@ export async function updateCustomerAdmin(
   data: CustomerUpdateInput
 ): Promise<Customer> {
   const response = await api.patch<Customer>(`/customers/${id}`, data);
+  return response.data;
+}
+
+/** Corrige um erro de digitação em person_type/cpf_cnpj já cadastrado —
+ * campos imutáveis em updateCustomerAdmin. Uso raro, só admin. */
+export async function correctCustomerDocumentAdmin(
+  id: number,
+  data: CustomerDocumentCorrectionInput
+): Promise<Customer> {
+  const response = await api.patch<Customer>(`/customers/${id}/document`, data);
   return response.data;
 }
 

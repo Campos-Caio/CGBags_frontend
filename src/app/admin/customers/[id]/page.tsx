@@ -15,9 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DefinitionRow } from "@/components/ui/definition-row";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminResource } from "@/hooks/useAdminResource";
 import {
+  correctCustomerDocumentAdmin,
   getCustomerByIdAdmin,
   updateCustomerAdmin,
   updateCustomerNoteAdmin,
@@ -25,7 +27,9 @@ import {
 import type { Address } from "@/types/address";
 import type { PersonType } from "@/types/customer";
 import { getApiErrorMessage } from "@/utils/apiError";
+import { confirmToast } from "@/utils/confirmToast";
 import { formatDate } from "@/utils/date";
+import { maskCpfCnpj } from "@/utils/mask";
 
 const PERSON_TYPE_LABEL: Record<PersonType, string> = {
   PF: "Pessoa física",
@@ -52,6 +56,10 @@ export default function CustomerDetailPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [note, setNote] = useState("");
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [isCorrectingDocument, setIsCorrectingDocument] = useState(false);
+  const [correctionPersonType, setCorrectionPersonType] = useState<PersonType>("PF");
+  const [correctionCpfCnpj, setCorrectionCpfCnpj] = useState("");
+  const [isSavingDocument, setIsSavingDocument] = useState(false);
 
   // Resincroniza o formulario sempre que um cliente (novo ou diferente) carrega.
   const [syncedCustomerId, setSyncedCustomerId] = useState<number | null>(null);
@@ -62,6 +70,35 @@ export default function CustomerDetailPage() {
     setBirthDate(customer.birth_date?.slice(0, 10) ?? "");
     setIsActive(customer.is_active);
     setNote(customer.internal_note ?? "");
+    setIsCorrectingDocument(false);
+    setCorrectionPersonType(customer.person_type);
+    setCorrectionCpfCnpj(maskCpfCnpj(customer.cpf_cnpj, customer.person_type));
+  }
+
+  function handleCorrectDocument() {
+    confirmToast(
+      "Corrigir o CPF/CNPJ e tipo de pessoa deste cliente? Use só pra corrigir um erro de digitação já cadastrado.",
+      performCorrectDocument,
+      { confirmLabel: "Corrigir" }
+    );
+  }
+
+  async function performCorrectDocument() {
+    if (!customer) return;
+    setIsSavingDocument(true);
+    try {
+      const updated = await correctCustomerDocumentAdmin(customer.id, {
+        person_type: correctionPersonType,
+        cpf_cnpj: correctionCpfCnpj,
+      });
+      setCustomer((prev) => (prev ? { ...prev, ...updated } : prev));
+      setIsCorrectingDocument(false);
+      toast.success("Documento corrigido.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Não foi possível corrigir o documento."));
+    } finally {
+      setIsSavingDocument(false);
+    }
   }
 
   async function handleSaveNote() {
@@ -178,6 +215,81 @@ export default function CustomerDetailPage() {
                   value={customer.cpf_cnpj}
                   locked
                 />
+
+                {isCorrectingDocument ? (
+                  <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Corrige um erro de digitação já cadastrado — não é edição normal.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <label htmlFor="c-doc-type" className="text-sm font-medium text-foreground">
+                          Tipo de pessoa
+                        </label>
+                        <Select
+                          value={correctionPersonType}
+                          onValueChange={(value) => {
+                            const newType = value as PersonType;
+                            setCorrectionPersonType(newType);
+                            setCorrectionCpfCnpj((prev) => maskCpfCnpj(prev, newType));
+                          }}
+                        >
+                          <SelectTrigger id="c-doc-type" className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PF">Pessoa física</SelectItem>
+                            <SelectItem value="PJ">Pessoa jurídica</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label htmlFor="c-doc-value" className="text-sm font-medium text-foreground">
+                          {correctionPersonType === "PF" ? "CPF" : "CNPJ"}
+                        </label>
+                        <Input
+                          id="c-doc-value"
+                          required
+                          inputMode="numeric"
+                          maxLength={correctionPersonType === "PF" ? 14 : 18}
+                          value={correctionCpfCnpj}
+                          onChange={(e) =>
+                            setCorrectionCpfCnpj(maskCpfCnpj(e.target.value, correctionPersonType))
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 self-end">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isSavingDocument}
+                        onClick={() => setIsCorrectingDocument(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={isSavingDocument}
+                        onClick={handleCorrectDocument}
+                      >
+                        {isSavingDocument ? "Salvando..." : "Salvar correção"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="self-start"
+                    onClick={() => setIsCorrectingDocument(true)}
+                  >
+                    Corrigir CPF/CNPJ ou tipo de pessoa
+                  </Button>
+                )}
 
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="c-phone" className="text-sm font-medium text-foreground">

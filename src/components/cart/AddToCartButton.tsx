@@ -17,17 +17,12 @@ interface AddToCartButtonProps {
 function AddToCartButton({ variantId, disabled = false }: AddToCartButtonProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { addItem, needsCustomerProfile } = useCart();
+  const { addItem } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleClick() {
     if (!isAuthenticated) {
       router.push("/login");
-      return;
-    }
-
-    if (needsCustomerProfile) {
-      router.push("/account/complete-profile");
       return;
     }
 

@@ -6,7 +6,7 @@ import type { OrderReturn } from "@/types/orderReturn";
 import type { OrderTracking } from "@/types/tracking";
 
 export async function listMyOrders(): Promise<Order[]> {
-  const response = await api.get<Order[]>("/orders/");
+  const response = await api.get<Order[]>("/orders");
   return response.data;
 }
 

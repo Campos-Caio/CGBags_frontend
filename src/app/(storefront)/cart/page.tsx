@@ -14,7 +14,7 @@ import { getApiErrorMessage } from "@/utils/apiError";
 
 export default function CartPage() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { cart, isLoading, needsCustomerProfile, updateItem, removeItem } = useCart();
+  const { cart, isLoading, updateItem, removeItem } = useCart();
 
   async function handleRemove(itemId: number) {
     try {
@@ -52,20 +52,6 @@ export default function CartPage() {
         <p className="text-muted-foreground">Faça login para ver os itens do seu carrinho.</p>
         <Button asChild>
           <Link href="/login">Entrar</Link>
-        </Button>
-      </Container>
-    );
-  }
-
-  if (needsCustomerProfile) {
-    return (
-      <Container className="flex flex-col items-center gap-4 py-24 text-center">
-        <h1 className="font-heading text-2xl font-semibold text-foreground">Seu carrinho</h1>
-        <p className="max-w-prose text-muted-foreground">
-          Finalize seu cadastro para começar a usar o carrinho.
-        </p>
-        <Button asChild>
-          <Link href="/account/complete-profile">Completar cadastro</Link>
         </Button>
       </Container>
     );
