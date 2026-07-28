@@ -1,5 +1,7 @@
 "use client";
 
+import { Plus } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import { PageHeader } from "@/components/admin/layout/PageHeader";
@@ -7,6 +9,7 @@ import { FilterBar } from "@/components/admin/data/FilterBar";
 import { TablePagination } from "@/components/admin/data/TablePagination";
 import { UsersTable } from "@/components/admin/users/UsersTable";
 import { LoadingState } from "@/components/admin/feedback/LoadingState";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -53,7 +56,17 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Usuários" />
+      <PageHeader
+        title="Usuários"
+        actions={
+          <Button asChild>
+            <Link href="/admin/users/new">
+              <Plus className="size-3.5" aria-hidden />
+              Novo usuário
+            </Link>
+          </Button>
+        }
+      />
 
       <FilterBar
         resultCount={users.length}

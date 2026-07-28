@@ -21,8 +21,19 @@ export interface UserRoleInput {
   is_active?: boolean;
 }
 
+export interface UserCreateAdminInput {
+  email: string;
+  password: string;
+  is_admin?: boolean;
+}
+
 export async function listUsersAdmin(params?: ListUsersParams): Promise<User[]> {
   const response = await api.get<User[]>("/users/", { params });
+  return response.data;
+}
+
+export async function createUserAdmin(data: UserCreateAdminInput): Promise<User> {
+  const response = await api.post<User>("/admin/users", data);
   return response.data;
 }
 
