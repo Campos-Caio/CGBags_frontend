@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { DetailHeader } from "@/components/admin/layout/DetailHeader";
@@ -74,12 +74,6 @@ export default function CustomerDetailPage() {
     setCorrectionPersonType(customer.person_type);
     setCorrectionCpfCnpj(maskCpfCnpj(customer.cpf_cnpj, customer.person_type));
   }
-
-  // Trocar o tipo de pessoa reaplica a mascara com o novo limite/formato —
-  // mesmo raciocinio do formulario de completar cadastro (complete-profile).
-  useEffect(() => {
-    setCorrectionCpfCnpj((prev) => maskCpfCnpj(prev, correctionPersonType));
-  }, [correctionPersonType]);
 
   function handleCorrectDocument() {
     confirmToast(
@@ -234,7 +228,11 @@ export default function CustomerDetailPage() {
                         </label>
                         <Select
                           value={correctionPersonType}
-                          onValueChange={(value) => setCorrectionPersonType(value as PersonType)}
+                          onValueChange={(value) => {
+                            const newType = value as PersonType;
+                            setCorrectionPersonType(newType);
+                            setCorrectionCpfCnpj((prev) => maskCpfCnpj(prev, newType));
+                          }}
                         >
                           <SelectTrigger id="c-doc-type" className="w-full">
                             <SelectValue />

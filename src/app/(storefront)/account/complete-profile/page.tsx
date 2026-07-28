@@ -32,12 +32,13 @@ export default function CompleteProfilePage() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  // Trocar o tipo de pessoa reaplica a mascara com o novo limite/formato —
-  // sem isso, 14 digitos digitados como CNPJ continuariam ali ao trocar
-  // para Pessoa física, que o backend rejeitaria como CPF invalido.
-  useEffect(() => {
-    setCpfCnpj((prev) => maskCpfCnpj(prev, personType));
-  }, [personType]);
+  function handlePersonTypeChange(newType: PersonType) {
+    // Reaplica a mascara com o novo limite/formato — sem isso, 14 digitos
+    // digitados como CNPJ continuariam ali ao trocar para Pessoa física,
+    // que o backend rejeitaria como CPF invalido.
+    setPersonType(newType);
+    setCpfCnpj((prev) => maskCpfCnpj(prev, newType));
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -83,7 +84,7 @@ export default function CompleteProfilePage() {
             <select
               id="personType"
               value={personType}
-              onChange={(event) => setPersonType(event.target.value as PersonType)}
+              onChange={(event) => handlePersonTypeChange(event.target.value as PersonType)}
               className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
             >
               <option value="PF">Pessoa física</option>
